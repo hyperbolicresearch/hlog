@@ -23,6 +23,16 @@ type LogOptions struct {
 	TransactionStep int       `json:"transaction_step,omitempty"`
 }
 
+type LogPayloadFromRequest struct {
+	Level           string      `json:"level"`
+	Message         string      `json:"message"`
+	Data            interface{} `json:"data,omitempty"`
+	Writer          string      `json:"writer"`
+	Tags            []string    `json:"tags,omitempty"`
+	TransactionId   string      `json:"transaction_id,omitempty"`
+	TransactionStep int         `json:"transaction_step,omitempty"`
+}
+
 // NewLog creates and returns a new Log object.
 func NewLog(level string, msg string, data interface{}, w string, options LogOptions) *Log {
 	log := &Log{
