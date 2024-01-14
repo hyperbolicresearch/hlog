@@ -1,15 +1,10 @@
 package main
 
 import (
-	"fmt"
-
-	"github.com/hyperbolicresearch/hlog/internal/core"
+	"github.com/hyperbolicresearch/hlog/internal/server"
 )
 
 func main() {
-	msg := "hello, there!"
-	data := struct{ foo string }{foo: "bar"}
-	w := "https://hyperbolicresearch.com"
-	log := core.NewLog(msg, data, w, core.LogOptions{})
-	fmt.Println(log.String())
+	s := server.NewServer(":8000")
+	s.Start()
 }

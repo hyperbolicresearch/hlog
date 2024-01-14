@@ -1,0 +1,4 @@
+Needs to be done in the next 24 hours:
+
+1. Store the logs to db
+2. HTTP server to handle log creation, query

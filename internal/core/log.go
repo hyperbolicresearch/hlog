@@ -9,6 +9,7 @@ import (
 
 type Log struct {
 	Id          uuid.UUID   `json:"id"`
+	Level       string      `json:"level"`
 	Message     string      `json:"message,omitempty"`
 	Data        interface{} `json:"data,omitempty"`
 	Timestamp   int64       `json:"timestamp,omitempty"`
@@ -23,9 +24,10 @@ type LogOptions struct {
 }
 
 // NewLog creates and returns a new Log object.
-func NewLog(msg string, data interface{}, w string, options LogOptions) *Log {
+func NewLog(level string, msg string, data interface{}, w string, options LogOptions) *Log {
 	log := &Log{
 		Id:        uuid.New(),
+		Level:     level,
 		Timestamp: time.Now().Unix(),
 		Message:   msg,
 		Data:      data,
