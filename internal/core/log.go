@@ -24,10 +24,10 @@ type LogOptions struct {
 }
 
 type LogPayloadFromRequest struct {
-	Level           string      `json:"level"`
-	Message         string      `json:"message"`
+	Level           string      `json:"level" validate:"required"`
+	Message         string      `json:"message" validate:"required"`
+	Writer          string      `json:"writer" validate:"required"`
 	Data            interface{} `json:"data,omitempty"`
-	Writer          string      `json:"writer"`
 	Tags            []string    `json:"tags,omitempty"`
 	TransactionId   string      `json:"transaction_id,omitempty"`
 	TransactionStep int         `json:"transaction_step,omitempty"`
