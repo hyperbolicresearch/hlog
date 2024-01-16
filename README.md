@@ -13,3 +13,12 @@ Hlog stands out with many unique features that it supports natively, amoung them
 - `Advanced queries` on your logs and metadata about them.
 - `Fast IO` enabled by technologies like Clickhouse.
 - `Integration` with industry-leading technologies such as Graphana
+
+## Components
+
+The Hlog software comprises the following elements:
+
+- The `core` which is the engine that keeps everything together.
+- The storage layer which is made of `Clickhouse` and `Postgres`.
+- The transport layer which comprises `HTTP` and `Kafka`.
+- The observation layer which comprises a CLI that is read-only, a web application that allows for querying.
