@@ -19,3 +19,4 @@ The Hlog software comprises the following elements:
 - The storage layer which is made of `Clickhouse` and `Postgres`.
 - The transport layer which comprises `HTTP` and `Kafka`.
 - The observation layer which comprises a CLI that is read-only, a web application that allows for querying.
+- The clients which are connectors (in `Go`, `Python`, and `TypeScript`/`JavaScript`) between applications and the log aggregator.
