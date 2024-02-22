@@ -33,7 +33,7 @@ class Hlog:
             log_id=str(uuid.uuid4()),
             sender_id=self.client_id,
             timestamp=int(datetime.now().replace(tzinfo=None).timestamp()),
-            level=str(level),
+            level=level.value,
             message=message,
             data=data,
         )
