@@ -14,12 +14,12 @@ import (
 )
 
 type Log struct {
-	Id        uuid.UUID   `json:"id"`
-	SenderId  string      `json:"sender_id"`
-	Timestamp int64       `json:"timestamp"`
-	Level     string      `json:"level"`
-	Message   string      `json:"message"`
-	Data      interface{} `json:"data"`
+	LogId     string                 `json:"log_id"`
+	SenderId  string                 `json:"sender_id"`
+	Timestamp int64                  `json:"timestamp"`
+	Level     string                 `json:"level"`
+	Message   string                 `json:"message"`
+	Data      map[string]interface{} `json:"data"`
 }
 
 // GenerateRandomLogs generates every in interval seconds
@@ -69,10 +69,12 @@ func GenerateRandomLogs(stop chan struct{}) {
 // Generate generates a new log with random data and produces it
 // to a random topic via the kafka producer provided to it.
 func Generate(kafkaProducer *kafka.Producer) {
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	index := rnd.Intn(5)
 	channels := os.Getenv("CHANNELS")
 	topics := strings.Split(channels, ",")
 
-	id := uuid.New()
+	id := uuid.New().String()
 
 	senderIds := []string{
 		"client-0001",
@@ -81,8 +83,6 @@ func Generate(kafkaProducer *kafka.Producer) {
 		"client-0004",
 		"client-0005",
 	}
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	index := rnd.Intn(5)
 	senderId := senderIds[index]
 
 	timestamp := time.Now().UnixNano()
@@ -98,18 +98,14 @@ func Generate(kafkaProducer *kafka.Producer) {
 
 	message := randomstring.HumanFriendlyEnglishString(7)
 
-	data := struct {
-		foo   string
-		bar   string
-		count int
-	}{
-		foo:   "foo",
-		bar:   "bar",
-		count: index,
+	data := map[string]interface{}{
+		"foo":   "foo",
+		"bar":   "bar",
+		"count": index,
 	}
 
 	sendableLog := Log{
-		Id:        id,
+		LogId:     id,
 		SenderId:  senderId,
 		Timestamp: timestamp,
 		Level:     level,
