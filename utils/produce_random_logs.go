@@ -11,16 +11,9 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/google/uuid"
 	randomstring "github.com/xyproto/randomstring"
-)
 
-type Log struct {
-	LogId     string                 `json:"log_id"`
-	SenderId  string                 `json:"sender_id"`
-	Timestamp int64                  `json:"timestamp"`
-	Level     string                 `json:"level"`
-	Message   string                 `json:"message"`
-	Data      map[string]interface{} `json:"data"`
-}
+	"github.com/hyperbolicresearch/hlog/internal/core"
+)
 
 // GenerateRandomLogs generates every in interval seconds
 // logs in a choice of numTopics topics, simulating how many processes
@@ -104,7 +97,7 @@ func Generate(kafkaProducer *kafka.Producer) {
 		"count": index,
 	}
 
-	sendableLog := Log{
+	sendableLog := core.Log{
 		LogId:     id,
 		SenderId:  senderId,
 		Timestamp: timestamp,
