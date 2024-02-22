@@ -1,14 +1,14 @@
 # pyright: reportMissingImports=false
 
 """
-
+The python client package for hlog
 """
 
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 import json
-from typing import Any, Dict, TypeVar
+from typing import Any
 import uuid
 from confluent_kafka import Producer
 
@@ -34,7 +34,6 @@ class Config:
     channel_id: str = "default"
     default_level: LogLevel = LogLevel.DEBUG
 
-V = TypeVar('V')
 
 @dataclass(frozen=True)
 class Log:
