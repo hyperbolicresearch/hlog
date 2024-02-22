@@ -1,4 +1,9 @@
 # pyright: reportMissingImports=false
+
+"""
+The python client package for hlog
+"""
+
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -35,9 +40,12 @@ class Log:
     log_id: str
     sender_id: str
     timestamp: int
-    level: LogLevel
+    level: str
     message: str
     data: Any
+
+    def to_dict(self):
+        return {k: v for k, v in self.__dict__.items()}
 
 
 class Hlog:
@@ -54,38 +62,39 @@ class Hlog:
     def _publish(
         self,
         message: str,
-        data: Any,
+        data: Any = None,
         level=LogLevel.DEBUG
     ) -> bool:
         msg = Log(
             log_id=str(uuid.uuid4()),
             sender_id=self.client_id,
             timestamp=int(datetime.now().replace(tzinfo=None).timestamp()),
-            level=level,
+            level=str(level),
             message=message,
             data=data,
         )
         self.producer.produce(
             self.kafka_topic,
-            value=json.dumps(msg),
+            value=json.dumps(msg.to_dict()),
         )
+        self.producer.poll(1)
         # FIXME implement the actual behavior based on the asyncronous
         # confirmation of the log.
         return True
 
-    def debug(self, message: str, data: Any) -> bool:
+    def debug(self, message: str, data: Any = None) -> bool:
         return self._publish(message, data, LogLevel.DEBUG)
     
-    def info(self, message: str, data: Any) -> bool:
+    def info(self, message: str, data: Any = None) -> bool:
         return self._publish(message, data, LogLevel.INFO)
     
-    def warn(self, message: str, data: Any) -> bool:
+    def warn(self, message: str, data: Any = None) -> bool:
         return self._publish(message, data, LogLevel.WARN)
     
-    def error(self, message: str, data: Any) -> bool:
+    def error(self, message: str, data: Any = None) -> bool:
         return self._publish(message, data, LogLevel.ERROR)
     
-    def fatal(self, message: str, data: Any) -> bool:
+    def fatal(self, message: str, data: Any = None) -> bool:
         return self._publish(message, data, LogLevel.FATAL)
     
     def __repr__(self) -> str:
