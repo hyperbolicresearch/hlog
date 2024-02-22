@@ -1,13 +1,10 @@
 package core
 
-import "github.com/google/uuid"
-
 type Log struct {
-	Id        uuid.UUID   `bson:"id"`
-	SenderId  string      `bson:"sender_id"`
-	Timestamp int64       `bson:"timestamp"`
-	Level     string      `bson:"level"`
-	Message   string      `bson:"message"`
-	Data      interface{} `bson:"data"`
+	LogId     string                 `json:"log_id" bson:"log_id"`
+	SenderId  string                 `json:"sender_id" bson:"sender_id"`
+	Timestamp int64                  `json:"timestamp" bson:"timestamp"`
+	Level     string                 `json:"level" bson:"level"`
+	Message   string                 `json:"message" bson:"message"`
+	Data      map[string]interface{} `json:"data" bson:"data"`
 }
-
