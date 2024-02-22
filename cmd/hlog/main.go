@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -24,6 +25,7 @@ func init() {
 }
 
 func main() {
+	log.Println("Hlog engine started...")
 	// KAFKA
 	channels := os.Getenv("CHANNELS")
 	clientId := os.Getenv("CLIENT_ID")
@@ -87,4 +89,6 @@ func ProcessLog(ev *kafka.Message, db *mongo.Database) {
 	if err != nil {
 		panic(err)
 	}
+
+	log.Printf("Successfully processed log from topic: %v", *ev.TopicPartition.Topic)
 }

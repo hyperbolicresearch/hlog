@@ -45,7 +45,7 @@ func GenerateRandomLogs(stop chan struct{}) {
 				if ev.TopicPartition.Error != nil {
 					log.Printf("Error producing: %v", err)
 				} else {
-					log.Printf("Produced to topic=%v, partition=%v",
+					log.Printf("Produced to topic=%-9v partition=%v",
 						*ev.TopicPartition.Topic,
 						ev.TopicPartition.Partition)
 				}
