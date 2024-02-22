@@ -12,6 +12,9 @@ import (
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/hyperbolicresearch/hlog/internal/core"
+	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
 )
 
 func init() {
@@ -31,7 +34,7 @@ func main() {
 		"group.id":          clientId,
 		"auto.offset.reset": "earliest",
 	}
-	kw, err := NewKafkaWorker(&configs, topics)
+	kw, err := kafka_service.NewKafkaWorker(&configs, topics)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -74,11 +77,11 @@ func main() {
 // ProcessLog takes a new incomming message (log) and further process
 // the storage
 func ProcessLog(ev *kafka.Message, db *mongo.Database) {
-	var value Log
+	var value core.Log
 	if err := json.Unmarshal(ev.Value, &value); err != nil {
 		fmt.Printf("Error unmarshalling value %v", err)
 	}
-	
+
 	col := db.Collection(*ev.TopicPartition.Topic)
 	_, err := col.InsertOne(context.TODO(), value)
 	if err != nil {
