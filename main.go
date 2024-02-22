@@ -21,8 +21,6 @@ func init() {
 }
 
 func main() {
-	// 1. Configure Mongo and Kafka
-
 	// KAFKA
 	channels := os.Getenv("CHANNELS")
 	clientId := os.Getenv("CLIENT_ID")
@@ -53,6 +51,7 @@ func main() {
 	db := client.Database(clientId)
 
 	stop := make(chan struct{}, 1)
+
 	go func() {
 		run := true
 		for run {
@@ -68,12 +67,6 @@ func main() {
 			}
 		}
 	}()
-	// 5. Then they are added to ClickHouse, and all the metrics queries
-	//    are runned again to update everything.
-	// 6. From the dashboard, we can access all the logs by query them,
-	//    access the metrics that are available.
-	// 7. (future) You can add processing pipeline to process the logs
-	//    which are essentially functions runned with the log as input.
 
 	<-stop
 }
@@ -86,4 +79,9 @@ func ProcessLog(ev *kafka.Message, db *mongo.Database) {
 		fmt.Printf("Error unmarshalling value %v", err)
 	}
 	
+	col := db.Collection(*ev.TopicPartition.Topic)
+	_, err := col.InsertOne(context.TODO(), value)
+	if err != nil {
+		panic(err)
+	}
 }
