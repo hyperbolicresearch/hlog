@@ -64,11 +64,4 @@ class Hlog {
   }
 }
 
-const hlog = new Hlog({
-  client_id: "test",
-  kafka_server: "0.0.0.0:65007",
-  channel_id: "subnet",
-})
-hlog.debug("hello world!", {foo: "bar"});
-
 export default Hlog;

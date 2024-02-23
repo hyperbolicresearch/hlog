@@ -55,5 +55,6 @@ const hlog = new Hlog({
     kafka_server: "0.0.0.0:65007",
     channel_id: "subnet",
 });
-hlog.debug("hello world!", { foo: "bar" });
+const res = hlog.debug("hello world!", { foo: "bar" });
+console.log(res);
 exports.default = Hlog;
