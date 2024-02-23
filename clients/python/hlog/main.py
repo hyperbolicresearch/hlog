@@ -4,10 +4,10 @@
 The python client package for hlog
 """
 
-from datetime import datetime
 import json
-from typing import Any
 import uuid
+from datetime import datetime
+from typing import Any
 from confluent_kafka import Producer
 from .types import Config, Log, LogLevel
 
@@ -42,7 +42,7 @@ class Hlog:
             value=json.dumps(msg.to_dict()),
         )
         self.producer.poll(1)
-        # FIXME implement the actual behavior based on the asyncronous
+        # FIXME implement the actual behavior based on the asynchronous
         # confirmation of the log.
         return True
 
