@@ -12,10 +12,10 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/hyperbolicresearch/hlog/internal/core"
 	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
+	"github.com/hyperbolicresearch/hlog/internal/storage/mongodb"
 )
 
 func init() {
@@ -43,16 +43,7 @@ func main() {
 
 	// MONGODB
 	mongodbUri := os.Getenv("MONGODB_URI")
-	if mongodbUri == "" {
-		panic("no set uri for mongodb")
-	}
-	clientOptions := options.Client().ApplyURI(mongodbUri)
-	ctx := context.Background()
-	client, err := mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		panic(err)
-	}
-	defer client.Disconnect(ctx)
+	client := mongodb.Client(mongodbUri)
 	db := client.Database(clientId)
 
 	stop := make(chan struct{}, 1)
