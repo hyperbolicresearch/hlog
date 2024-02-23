@@ -11,10 +11,10 @@ export enum LogLevel {
 export type Config = {
   client_id: string;
   kafka_server: string;
-  kafka_username: string;
-  kafka_password: string;
+  kafka_username?: string;
+  kafka_password?: string;
   channel_id: string;
-  default_level: LogLevel;
+  default_level?: LogLevel;
 }
 
 export type Log = {

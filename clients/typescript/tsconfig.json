@@ -4,7 +4,9 @@
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true,
+    "outDir": "./dist",
+    "rootDir": "./hlog",
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["clients/typescript/hlog/**/*"]
+  "include": ["./hlog/**/*"]
 }

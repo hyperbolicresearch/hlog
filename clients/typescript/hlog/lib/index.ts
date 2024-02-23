@@ -13,7 +13,7 @@ class Hlog {
 
   constructor(config: Config) {
     this.client_id = config.client_id;
-    this.default_level = config.default_level;
+    this.default_level = config.default_level || LogLevel.DEBUG;
     this.kafka_topic = config.channel_id;
     this.kafka_config = {
       brokers: [config.kafka_server],
