@@ -13,7 +13,7 @@ class Hlog {
 
   constructor(config: Config) {
     this.client_id = config.client_id;
-    this.default_level = config.default_level;
+    this.default_level = config.default_level || LogLevel.DEBUG;
     this.kafka_topic = config.channel_id;
     this.kafka_config = {
       brokers: [config.kafka_server],
@@ -63,5 +63,12 @@ class Hlog {
     return this.publish(message, data, LogLevel.FATAL);
   }
 }
+
+const hlog = new Hlog({
+  client_id: "test",
+  kafka_server: "0.0.0.0:65007",
+  channel_id: "subnet",
+})
+hlog.debug("hello world!", {foo: "bar"});
 
 export default Hlog;
