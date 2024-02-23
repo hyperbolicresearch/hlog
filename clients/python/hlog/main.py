@@ -4,48 +4,12 @@
 The python client package for hlog
 """
 
-from dataclasses import dataclass
-from datetime import datetime
-from enum import Enum
 import json
-from typing import Any
 import uuid
+from datetime import datetime
+from typing import Any
 from confluent_kafka import Producer
-
-
-def serialize_value(value):
-    return json.dumps(value).encode('utf-8')
-
-
-class LogLevel(Enum):
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARN = "WARN"
-    ERROR = "ERROR"
-    FATAL = "FATAL"
-
-
-@dataclass(frozen=True)
-class Config:
-    client_id: str
-    kafka_server: str
-    kafka_username: str = ""
-    kafka_password: str = ""
-    channel_id: str = "default"
-    default_level: LogLevel = LogLevel.DEBUG
-
-
-@dataclass(frozen=True)
-class Log:
-    log_id: str
-    sender_id: str
-    timestamp: int
-    level: str
-    message: str
-    data: Any
-
-    def to_dict(self):
-        return {k: v for k, v in self.__dict__.items()}
+from .types import Config, Log, LogLevel
 
 
 class Hlog:
@@ -69,7 +33,7 @@ class Hlog:
             log_id=str(uuid.uuid4()),
             sender_id=self.client_id,
             timestamp=int(datetime.now().replace(tzinfo=None).timestamp()),
-            level=str(level),
+            level=level.value,
             message=message,
             data=data,
         )
@@ -78,7 +42,7 @@ class Hlog:
             value=json.dumps(msg.to_dict()),
         )
         self.producer.poll(1)
-        # FIXME implement the actual behavior based on the asyncronous
+        # FIXME implement the actual behavior based on the asynchronous
         # confirmation of the log.
         return True
 

@@ -1,5 +1,2 @@
-from .main import (
-    Config,
-    Hlog,
-    LogLevel,
-)
+from .types import Config, Log, LogLevel
+from .main import Hlog

@@ -1,3 +1,11 @@
 .env
-.vscode/
 scripts
+
+# TypeScript
+node_modules/
+.vscode/
+
+# Python
+venv/
+__pycache__
+.pytest_cache

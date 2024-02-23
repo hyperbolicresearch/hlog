@@ -26,7 +26,7 @@ def test_publish(hlog_test) -> None:
 
 
 def test_debug(hlog_test) -> None:
-    assert hlog_test.debug("hello world")== True
+    assert hlog_test.debug("hello world") == True
 
 
 def test_info(hlog_test) -> None:
