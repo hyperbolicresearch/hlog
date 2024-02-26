@@ -13,9 +13,10 @@ import (
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 
+	clickhouse_connector "github.com/hyperbolicresearch/hlog/internal/clickhouse"
 	"github.com/hyperbolicresearch/hlog/internal/core"
 	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
-	"github.com/hyperbolicresearch/hlog/internal/storage/mongodb"
+	"github.com/hyperbolicresearch/hlog/internal/mongodb"
 )
 
 func init() {
@@ -39,6 +40,12 @@ func main() {
 	kw, err := kafka_service.NewKafkaWorker(&configs, topics)
 	if err != nil {
 		os.Exit(1)
+	}
+
+	// CLICKHOUSE
+	_, err = clickhouse_connector.Conn()
+	if err != nil {
+		panic(err)
 	}
 
 	// MONGODB

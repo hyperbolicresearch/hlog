@@ -7,3 +7,4 @@ Our short-term roadmap:
 - Packages publication.
 - Containerization.
 - CI/CD
+- Tests
