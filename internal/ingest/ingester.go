@@ -11,37 +11,27 @@ import (
 )
 
 type Ingester interface {
-	// Start will start the process of ingesting.
 	Start()
-	// Stop stops the process of ingesting.
 	Stop() error
-	// Consume will read from Kafka and store the messages
 	Consume() error
-	// Transform will perform the transformations of the messages
-	// in the format we store them in ClickHouse
 	Transform() error
-	// ExtractSchema will extact the schema from the buffered
-	// messages.
-	ExtractSchema() error
-	// SendForBatching makes the stored messages available
-	// for insertion to ClickHouse by the Batcher
+	ExtractSchemas() error
 	SendForBatching() error
-	// Commit will commit to Kafka after receiving the acks from
-	// the Batcher for the corresponding offset.
 	Commit() error
 }
 
 type IngesterWorker struct {
 	sync.RWMutex
 	*kafka.Consumer
-
-	IsRunning    bool
-	Messages     *Messages
-	BufferSchema interface{}
+	IsRunning     bool
+	Messages      *Messages
+	// BufferSchemas stores the different schemas (one schema per
+	// channel) from the buffered messages.
+	BufferSchemas []interface{}
 	// CanCommit is a way for us to make sure that we have successfully
 	// sink the buffered messages to ClickHouse, and that we can commit
 	// to Kafka. This guarantess At-Least-Once delivery.
-	CanCommit    chan struct{}
+	CanCommit chan struct{}
 	// ConsumeInterval is the periodic interval to consume messages
 	// from kafka.
 	ConsumeInterval time.Duration
@@ -94,6 +84,9 @@ func (i *IngesterWorker) Start() {
 // gracefully shutting down the consumming process from Kafka and
 // the sinking process to ClickHouse.
 func (i *IngesterWorker) Stop() error {
+	i.Lock()
+	defer i.Unlock()
+	i.IsRunning = false
 	return nil
 }
 
@@ -118,7 +111,7 @@ func (i *IngesterWorker) Consume() error {
 	// The following pipeline will perfom the preparation and the
 	// sink of the buffered data to ClickHouse.
 	_ = i.Transform()
-	_ = i.ExtractSchema()
+	_ = i.ExtractSchemas()
 	go i.SendForBatching()
 
 	// Waiting until we have the acks that we successfully sink
@@ -130,11 +123,14 @@ func (i *IngesterWorker) Consume() error {
 	return nil
 }
 
-func(i *IngesterWorker) Transform() error {
+// Transform will flatten the message to the appropriate format
+// that will be stored to ClickHouse, add metadata.
+func (i *IngesterWorker) Transform() error {
+	
 	return nil
 }
 
-func (i *IngesterWorker) ExtractSchema() error {
+func (i *IngesterWorker) ExtractSchemas() error {
 	return nil
 }
 
