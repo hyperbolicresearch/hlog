@@ -16,15 +16,15 @@ type Ingester interface {
 	Consume() error
 	Transform() error
 	ExtractSchemas() error
-	SendForBatching() error
+	Sink() error
 	Commit() error
 }
 
 type IngesterWorker struct {
 	sync.RWMutex
 	*kafka.Consumer
-	IsRunning     bool
-	Messages      *Messages
+	IsRunning bool
+	Messages  *Messages
 	// BufferSchemas stores the different schemas (one schema per
 	// channel) from the buffered messages.
 	BufferSchemas []interface{}
@@ -112,11 +112,11 @@ func (i *IngesterWorker) Consume() error {
 	// sink of the buffered data to ClickHouse.
 	_ = i.Transform()
 	_ = i.ExtractSchemas()
-	go i.SendForBatching()
+	go i.Sink()
 
 	// Waiting until we have the acks that we successfully sink
 	// the data to ClickHouse (which should be sent from inside
-	// SendForBatching)
+	// Sink)
 	<-i.CanCommit
 	i.Commit()
 
@@ -126,18 +126,31 @@ func (i *IngesterWorker) Consume() error {
 // Transform will flatten the message to the appropriate format
 // that will be stored to ClickHouse, add metadata.
 func (i *IngesterWorker) Transform() error {
-	
+	// 1. assume interface{}
+	// 2. assert that Log.Data is of type map[string]interface
+	// 3. get all the keys to a slice
+	// 4. iterate over it and add corresponding keys with types to new map
+	// 5. add metadata to the new map
+	// 6. create struct from map (? is it necessary)
+
 	return nil
 }
 
 func (i *IngesterWorker) ExtractSchemas() error {
+	// 1. create a slice of channels from messages
+	// 2. for each channel, generate a schema with ClickHouse
 	return nil
 }
 
-func (i *IngesterWorker) SendForBatching() error {
+func (i *IngesterWorker) Sink() error {
+	// 1. alter table if needed for each slice
+	// 2. sink the data to clickhouse
+	// 3. write to CanCommit channel
 	return nil
 }
 
 func (i *IngesterWorker) Commit() error {
+	// 1. commit to current offset in kafka
+	// 2. log about batch processing completion
 	return nil
 }

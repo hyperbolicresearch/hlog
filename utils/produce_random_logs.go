@@ -66,6 +66,7 @@ func Generate(kafkaProducer *kafka.Producer) {
 	index := rnd.Intn(5)
 	channels := os.Getenv("CHANNELS")
 	topics := strings.Split(channels, ",")
+	channel := topics[index]
 
 	id := uuid.New().String()
 
@@ -98,6 +99,7 @@ func Generate(kafkaProducer *kafka.Producer) {
 	}
 
 	sendableLog := core.Log{
+		Channel:   channel,
 		LogId:     id,
 		SenderId:  senderId,
 		Timestamp: timestamp,
