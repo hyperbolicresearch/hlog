@@ -174,8 +174,9 @@ func (i *IngesterWorker) Transform() error {
 				t["float64.values"] = append(t["float64.values"].([]float64), v.(float64))
 			}
 		}
-
+		i.Messages.Lock()
 		i.Messages.TransformedData = append(i.Messages.TransformedData, t)
+		i.Messages.Unlock()
 	}
 
 	return nil
