@@ -13,6 +13,7 @@ import (
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/hyperbolicresearch/hlog/internal/core"
+	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
 )
 
 type Ingester interface {
@@ -27,7 +28,7 @@ type Ingester interface {
 
 type IngesterWorker struct {
 	sync.RWMutex
-	*kafka.Consumer
+	*kafka_service.KafkaWorker
 	IsRunning bool
 	Messages  *Messages
 	// BufferSchemas stores the different schemas (one schema per channel)
@@ -53,8 +54,36 @@ type IngesterWorker struct {
 
 type Messages struct {
 	sync.RWMutex
-	Data           []*kafka.Message
-	TransformedData []interface{}
+	Data            []*core.Log
+	TransformedData []map[string]interface{}
+}
+
+// TODO: make configs
+func NewIngesterWorker() *IngesterWorker {
+	channels := "mainnet,testnet,subnet,intranet,darknet"
+	topics := strings.Split(channels, ",")
+	groupId := "hyperclusters-1415"
+	kafkaServer := "0.0.0.0:65007"
+	kConfigs := kafka.ConfigMap{
+		"bootstrap.servers":  kafkaServer,
+		"group.id":           groupId,
+		"enable.auto.commit": false,
+	}
+	kw, err := kafka_service.NewKafkaWorker(&kConfigs, topics)
+	if err != nil {
+		panic("failed to create ingester")
+	}
+
+	_i := &IngesterWorker{
+		Messages:         &Messages{},
+		KafkaWorker:      kw,
+		CanCommit:        make(chan struct{}, 1),
+		ConsumeInterval:  time.Duration(100) * time.Millisecond,
+		MinBatchableSize: 1,
+		MaxBatchableSize: 1000,
+		MaxBatchableWait: time.Duration(5) * time.Second,
+	}
+	return _i
 }
 
 // Start spins up the consuming process generally speaking. It runs as
@@ -105,12 +134,16 @@ func (i *IngesterWorker) Consume() error {
 	// Doing like that, we make sure that we always read less
 	// or equal to the i.MaxBatchableSize.
 	for j := 0; j < i.MaxBatchableSize; j++ {
-		msg, err := i.Consumer.ReadMessage(i.ConsumeInterval)
+		msg, err := i.KafkaWorker.Consumer.ReadMessage(i.ConsumeInterval)
 		if err != nil {
 			continue
 		}
+		var l core.Log
+		if err := json.Unmarshal(msg.Value, &l); err != nil {
+			return fmt.Errorf("error unmarshalling value %v: %v", msg.Value, err)
+		}
 		i.Messages.Lock()
-		i.Messages.Data = append(i.Messages.Data, msg)
+		i.Messages.Data = append(i.Messages.Data, &l)
 		i.Messages.Unlock()
 	}
 
@@ -125,25 +158,21 @@ func (i *IngesterWorker) Consume() error {
 	// Sink)
 	<-i.CanCommit
 	i.Commit()
-
 	return nil
 }
 
 // Transform will flatten the message to the appropriate format
 // that will be stored to ClickHouse, add metadata.
 func (i *IngesterWorker) Transform() error {
-	for _, msg := range i.Messages.Data {
+	for _, entry := range i.Messages.Data {
 		// metadata fields
 		t := make(map[string]interface{})
-		var entry core.Log
-		if err := json.Unmarshal(msg.Value, &entry); err != nil {
-			return fmt.Errorf("error unmarshalling value %v: %v", msg.Value, err)
-		}
-		values := reflect.ValueOf(entry)
+
+		values := reflect.ValueOf(*entry)
 		types := values.Type()
-		for j := 0; j < values.NumField(); j++ {
+		for j := 0; j < types.NumField(); j++ {
 			_type := fmt.Sprintf("_%s", strings.ToLower(types.Field(j).Name))
-			_value := values.Field(j)
+			_value := values.Field(j).Interface()
 			t[_type] = _value
 		}
 		// data fields of the Log.Data field.
@@ -151,12 +180,8 @@ func (i *IngesterWorker) Transform() error {
 		// ClickHouse. They are not intended to be normal fields since we do not
 		// actually want to store each field in a separate column (which can
 		// be devastating as fields are dynamic)
-		dataValues := reflect.ValueOf(entry.Data)
-		dataTypes := values.Type()
-		for k := 0; k < dataValues.NumField(); k++ {
-			_type := dataTypes.Field(k).Name
-			_value := dataValues.Field(k)
-			t[_type] = _value
+		for k, v := range entry.Data {
+			t[k] = v
 		}
 		// arrays of same-typed data fields.
 		// PS: Needed for queries
@@ -164,12 +189,18 @@ func (i *IngesterWorker) Transform() error {
 		for k, v := range entry.Data {
 			switch reflect.TypeOf(v).Kind() {
 			case reflect.String:
+				t["string.keys"] = []string{}
+				t["string.values"] = []string{}
 				t["string.keys"] = append(t["string.keys"].([]string), k)
 				t["string.values"] = append(t["string.values"].([]string), v.(string))
 			case reflect.Int:
+				t["int.keys"] = []string{}
+				t["int.values"] = []int{}
 				t["int.keys"] = append(t["int.keys"].([]string), k)
 				t["int.values"] = append(t["int.values"].([]int), v.(int))
 			case reflect.Float64:
+				t["float64.keys"] = []string{}
+				t["float64.values"] = []float64{}
 				t["float64.keys"] = append(t["float64.keys"].([]string), k)
 				t["float64.values"] = append(t["float64.values"].([]float64), v.(float64))
 			}
@@ -178,7 +209,6 @@ func (i *IngesterWorker) Transform() error {
 		i.Messages.TransformedData = append(i.Messages.TransformedData, t)
 		i.Messages.Unlock()
 	}
-
 	return nil
 }
 
@@ -192,6 +222,7 @@ func (i *IngesterWorker) Sink() error {
 	// 1. alter table if needed for each slice
 	// 2. sink the data to clickhouse
 	// 3. write to CanCommit channel
+	i.CanCommit <- struct{}{}
 	return nil
 }
 
