@@ -1,13 +1,18 @@
 package ingest
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
+	"reflect"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/hyperbolicresearch/hlog/internal/core"
 )
 
 type Ingester interface {
@@ -25,8 +30,8 @@ type IngesterWorker struct {
 	*kafka.Consumer
 	IsRunning bool
 	Messages  *Messages
-	// BufferSchemas stores the different schemas (one schema per
-	// channel) from the buffered messages.
+	// BufferSchemas stores the different schemas (one schema per channel)
+	//from the buffered messages.
 	BufferSchemas []interface{}
 	// CanCommit is a way for us to make sure that we have successfully
 	// sink the buffered messages to ClickHouse, and that we can commit
@@ -42,13 +47,14 @@ type IngesterWorker struct {
 	// buffer to Messages before committing or batching.
 	MaxBatchableSize int
 	// MaxBatchableWait is the threshold for committing and batching
-	// givent that MinCommitCount is met.
+	// given that MinCommitCount is met.
 	MaxBatchableWait time.Duration
 }
 
 type Messages struct {
 	sync.RWMutex
-	Data []*kafka.Message
+	Data           []*kafka.Message
+	TransformedData []interface{}
 }
 
 // Start spins up the consuming process generally speaking. It runs as
@@ -126,12 +132,51 @@ func (i *IngesterWorker) Consume() error {
 // Transform will flatten the message to the appropriate format
 // that will be stored to ClickHouse, add metadata.
 func (i *IngesterWorker) Transform() error {
-	// 1. assume interface{}
-	// 2. assert that Log.Data is of type map[string]interface
-	// 3. get all the keys to a slice
-	// 4. iterate over it and add corresponding keys with types to new map
-	// 5. add metadata to the new map
-	// 6. create struct from map (? is it necessary)
+	for _, msg := range i.Messages.Data {
+		// metadata fields
+		t := make(map[string]interface{})
+		var entry core.Log
+		if err := json.Unmarshal(msg.Value, &entry); err != nil {
+			return fmt.Errorf("error unmarshalling value %v: %v", msg.Value, err)
+		}
+		values := reflect.ValueOf(entry)
+		types := values.Type()
+		for j := 0; j < values.NumField(); j++ {
+			_type := fmt.Sprintf("_%s", strings.ToLower(types.Field(j).Name))
+			_value := values.Field(j)
+			t[_type] = _value
+		}
+		// data fields of the Log.Data field.
+		// PS: Needed fast fast queries, leveraging materialized views of
+		// ClickHouse. They are not intended to be normal fields since we do not
+		// actually want to store each field in a separate column (which can
+		// be devastating as fields are dynamic)
+		dataValues := reflect.ValueOf(entry.Data)
+		dataTypes := values.Type()
+		for k := 0; k < dataValues.NumField(); k++ {
+			_type := dataTypes.Field(k).Name
+			_value := dataValues.Field(k)
+			t[_type] = _value
+		}
+		// arrays of same-typed data fields.
+		// PS: Needed for queries
+		// TODO: Support more types
+		for k, v := range entry.Data {
+			switch reflect.TypeOf(v).Kind() {
+			case reflect.String:
+				t["string.keys"] = append(t["string.keys"].([]string), k)
+				t["string.values"] = append(t["string.values"].([]string), v.(string))
+			case reflect.Int:
+				t["int.keys"] = append(t["int.keys"].([]string), k)
+				t["int.values"] = append(t["int.values"].([]int), v.(int))
+			case reflect.Float64:
+				t["float64.keys"] = append(t["float64.keys"].([]string), k)
+				t["float64.values"] = append(t["float64.values"].([]float64), v.(float64))
+			}
+		}
+
+		i.Messages.TransformedData = append(i.Messages.TransformedData, t)
+	}
 
 	return nil
 }
