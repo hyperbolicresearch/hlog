@@ -36,7 +36,7 @@ type IngesterWorker struct {
 	Messages  *Messages
 	// BufferSchemas stores the different schemas (one schema per channel)
 	//from the buffered messages.
-	BufferSchemas []interface{}
+	BufferSchemas map[string][]interface{}
 	// CanCommit is a way for us to make sure that we have successfully
 	// sink the buffered messages to ClickHouse, and that we can commit
 	// to Kafka. This guarantess At-Least-Once delivery.
@@ -79,7 +79,7 @@ func NewIngesterWorker() *IngesterWorker {
 
 	_i := &IngesterWorker{
 		Messages:         &Messages{},
-		BufferSchemas: make([]interface{}, 0, len(topics)),
+		BufferSchemas:    make(map[string][]interface{}),
 		KafkaWorker:      kw,
 		CanCommit:        make(chan struct{}, 1),
 		ConsumeInterval:  time.Duration(10) * time.Second,
@@ -290,7 +290,6 @@ func (i *IngesterWorker) ExtractSchemas() error {
 			vars[j] = reflect.New(columnTypes[j].ScanType()).Interface()
 		}
 
-
 		// We will populate this with the pairs (column_name, column_type)
 		// for further processing.
 
@@ -300,7 +299,9 @@ func (i *IngesterWorker) ExtractSchemas() error {
 				return fmt.Errorf("error reading clickhouse description: %v", err)
 			}
 			for ndx, v := range vars {
-				if ndx == 2 { break }  // we are just interested in the first 2 ones
+				if ndx == 2 {
+					break
+				} // we are just interested in the first 2 ones
 				switch v := v.(type) {
 				case *string:
 					chFields = append(chFields, *v)
@@ -328,7 +329,7 @@ func (i *IngesterWorker) Commit() error {
 }
 
 // processFields will take a slice of the form [column_name, column_type, ...]
-// and produce an intermediate representation with it that will later be used 
+// and produce an intermediate representation with it that will later be used
 // in the batching steps to define how to create or alter tables before sinking
 func (i *IngesterWorker) processFields(channel string, chFields []string) error {
 	return nil
