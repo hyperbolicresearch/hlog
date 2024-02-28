@@ -77,3 +77,14 @@ func TestTransform(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractSchemas(t *testing.T) {
+	ingester := NewIngesterWorker()
+	err := ingester.ExtractSchemas()
+
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+	t.Fail()
+}

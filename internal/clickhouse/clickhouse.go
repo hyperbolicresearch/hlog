@@ -3,16 +3,15 @@ package clickhouse_connector
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 )
 
-func Conn() (driver.Conn, error) {
+func Conn(addrs []string) (driver.Conn, error) {
 	ctx := context.Background()
 	conn, err := clickhouse.Open(&clickhouse.Options{
-		Addr: []string{string(os.Getenv("CLICKHOUSE_SERVER"))},
+		Addr: addrs,
 		Auth: clickhouse.Auth{
 			Database: "default",
 			Username: "default",

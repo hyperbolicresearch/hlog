@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -12,6 +13,8 @@ import (
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+
+	clickhouse_connector "github.com/hyperbolicresearch/hlog/internal/clickhouse"
 	"github.com/hyperbolicresearch/hlog/internal/core"
 	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
 )
@@ -76,9 +79,10 @@ func NewIngesterWorker() *IngesterWorker {
 
 	_i := &IngesterWorker{
 		Messages:         &Messages{},
+		BufferSchemas: make([]interface{}, 0, len(topics)),
 		KafkaWorker:      kw,
 		CanCommit:        make(chan struct{}, 1),
-		ConsumeInterval:  time.Duration(100) * time.Millisecond,
+		ConsumeInterval:  time.Duration(10) * time.Second,
 		MinBatchableSize: 1,
 		MaxBatchableSize: 1000,
 		MaxBatchableWait: time.Duration(5) * time.Second,
@@ -175,17 +179,11 @@ func (i *IngesterWorker) Transform() error {
 			_value := values.Field(j).Interface()
 			t[_type] = _value
 		}
-		// data fields of the Log.Data field.
-		// PS: Needed fast fast queries, leveraging materialized views of
-		// ClickHouse. They are not intended to be normal fields since we do not
-		// actually want to store each field in a separate column (which can
-		// be devastating as fields are dynamic)
+		// data fields
 		for k, v := range entry.Data {
 			t[k] = v
 		}
 		// arrays of same-typed data fields.
-		// PS: Needed for queries
-		// TODO: Support more types
 		for k, v := range entry.Data {
 			switch reflect.TypeOf(v).Kind() {
 			case reflect.String:
@@ -213,8 +211,105 @@ func (i *IngesterWorker) Transform() error {
 }
 
 func (i *IngesterWorker) ExtractSchemas() error {
-	// 1. create a slice of channels from messages
-	// 2. for each channel, generate a schema with ClickHouse
+	// i.Messages.RLock()
+	// data := i.Messages.TransformedData
+	// i.Messages.RUnlock()
+
+	data := []map[string]interface{}{
+		{
+			// metadata
+			"_channel":   "testnet",
+			"_logid":     "0000-0000-0000-0000-0000",
+			"_senderid":  "test-1234",
+			"_timestamp": int64(1709118220916),
+			"_level":     "debug",
+			"_message":   "lorem ipsum dolor",
+			"_data":      map[string]interface{}{"bar": "helloworld", "foo": 1},
+			// fields
+			"foo": 1,
+			"bar": "helloworld",
+			// field arrays
+			"int.keys":      []string{"foo"},
+			"int.values":    []int{1},
+			"string.keys":   []string{"bar"},
+			"string.values": []string{"helloworld"},
+		},
+	}
+
+	// get the part from messages that we are saving in the db
+	// we only store metadata adn field arrays. fields are only
+	// materialized when needed (in the future)
+	storableData := make([]map[string]interface{}, 0, len(data))
+	for _, item := range data {
+		kv := map[string]interface{}{}
+		for k, v := range item {
+			if strings.HasPrefix(k, "_") || strings.Contains(k, ".") {
+				kv[k] = v
+			}
+		}
+		storableData = append(storableData, kv)
+	}
+
+	// group messages by channel
+	dataByChannel := make(map[string][]interface{})
+	for _, item := range storableData {
+		// we are grouping by channel (channel <=> table)
+		key := item["_channel"].(string)
+		if _, exists := dataByChannel[key]; !exists {
+			dataByChannel[key] = []interface{}{item}
+		} else {
+			dataByChannel[key] = append(dataByChannel[key], item)
+		}
+	}
+
+	addrs := []string{"localhost:9000"}
+	chConn, err := clickhouse_connector.Conn(addrs)
+	if err != nil {
+		return err
+	}
+
+	// For each channel, we extract the schema
+	for channel, channelValue := range dataByChannel {
+		jsonStorableData, err := json.Marshal(channelValue)
+		if err != nil {
+			return fmt.Errorf("error marshalling storable data: %v", err)
+		}
+		rows, err := chConn.Query(
+			context.Background(),
+			"DESC format(JSONEachRow, $1)",
+			string(jsonStorableData))
+		if err != nil {
+			return fmt.Errorf("error describing data: %v", err)
+		}
+
+		var (
+			columnTypes = rows.ColumnTypes()
+			vars        = make([]interface{}, len(columnTypes))
+		)
+		for j := range columnTypes {
+			vars[j] = reflect.New(columnTypes[j].ScanType()).Interface()
+		}
+
+
+		// We will populate this with the pairs (column_name, column_type)
+		// for further processing.
+
+		var chFields []string
+		for rows.Next() {
+			if err := rows.Scan(vars...); err != nil {
+				return fmt.Errorf("error reading clickhouse description: %v", err)
+			}
+			for ndx, v := range vars {
+				if ndx == 2 { break }  // we are just interested in the first 2 ones
+				switch v := v.(type) {
+				case *string:
+					chFields = append(chFields, *v)
+				}
+			}
+		}
+		// process the fields that we extracted
+		i.processFields(channel, chFields)
+	}
 	return nil
 }
 
@@ -229,5 +324,12 @@ func (i *IngesterWorker) Sink() error {
 func (i *IngesterWorker) Commit() error {
 	// 1. commit to current offset in kafka
 	// 2. log about batch processing completion
+	return nil
+}
+
+// processFields will take a slice of the form [column_name, column_type, ...]
+// and produce an intermediate representation with it that will later be used 
+// in the batching steps to define how to create or alter tables before sinking
+func (i *IngesterWorker) processFields(channel string, chFields []string) error {
 	return nil
 }

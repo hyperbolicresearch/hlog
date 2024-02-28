@@ -43,7 +43,8 @@ func main() {
 	}
 
 	// CLICKHOUSE
-	_, err = clickhouse_connector.Conn()
+	addrs := []string{string(os.Getenv("CLICKHOUSE_SERVER"))}
+	_, err = clickhouse_connector.Conn(addrs)
 	if err != nil {
 		panic(err)
 	}
