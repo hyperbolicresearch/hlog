@@ -110,9 +110,9 @@ func (m *MongoDBIngester) Sink(msg *kafka.Message) error {
 		fmt.Printf("Error unmarshalling value %v", err)
 	}
 
-	// m.Lock()
-	// defer m.Unlock()
+	m.Lock()
 	col := m.Database.Collection(*msg.TopicPartition.Topic)
+	defer m.Unlock()
 	_, err := col.InsertOne(context.TODO(), value)
 	if err != nil {
 		panic(err)
