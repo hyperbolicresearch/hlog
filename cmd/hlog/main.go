@@ -32,14 +32,22 @@ func main() {
 	clientId := os.Getenv("CLIENT_ID")
 	kafkaServer := os.Getenv("KAFKA_SERVER")
 	topics := strings.Split(channels, ",")
-	configs := kafka.ConfigMap{
-		"bootstrap.servers": kafkaServer,
-		"group.id":          clientId,
-		"auto.offset.reset": "earliest",
+	configs := kafka_service.KafkaConfigs{
+		Server: kafkaServer,
+		GroupId: clientId,
+		AutoOffsetReset: "earliest",
 	}
-	kw, err := kafka_service.NewKafkaWorker(&configs, topics)
+	kw, err := kafka_service.NewKafkaWorker(&configs)
 	if err != nil {
 		os.Exit(1)
+	}
+	err = kw.ConfigureConsumer()
+	if err != nil {
+		panic(err)
+	}
+	err = kw.SubscribeTopics(topics)
+	if err != nil {
+		panic(err)
 	}
 
 	// CLICKHOUSE
