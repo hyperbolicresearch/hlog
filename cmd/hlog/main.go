@@ -35,11 +35,11 @@ func main() {
 			GroupId:         clientId,
 			AutoOffsetReset: "earliest",
 		},
-		KafkaTopics:        topics,
-		ConsumeInterval:    time.Duration(100) * time.Millisecond,
-		MongoServer:        mongodbUri,
-		TopicsCallbackList: []string{},
-		Database:           clientId,
+		KafkaTopics:     topics,
+		ConsumeInterval: time.Duration(100) * time.Millisecond,
+		MongoServer:     mongodbUri,
+		TopicCallback:   "",
+		Database:        clientId,
 	}
 	MDBIngester := ingest.NewMongoDBIngester(&mongodbConfigs)
 	go MDBIngester.Start()

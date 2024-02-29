@@ -21,10 +21,9 @@ type MongoDBIngester struct {
 	*mongo.Database
 	*kafka_service.KafkaWorker
 	ConsumeInterval time.Duration
-	// TopicsCallbackList is a list of topics to produce to upon
-	// successful insertion.
-	TopicsCallbackList []string
-	CloseChan          chan struct{}
+	// TopicCallback is the Kafka topic to produce to upon successful insertion.
+	TopicCallback string
+	CloseChan     chan struct{}
 }
 
 type MongoDBIngesterConfig struct {
@@ -33,9 +32,9 @@ type MongoDBIngesterConfig struct {
 	KafkaTopics     []string
 	ConsumeInterval time.Duration
 	// MongoDb related configurations
-	MongoServer        string
-	TopicsCallbackList []string
-	Database           string
+	MongoServer   string
+	TopicCallback string
+	Database      string
 }
 
 func NewMongoDBIngester(configs *MongoDBIngesterConfig) *MongoDBIngester {
@@ -51,11 +50,11 @@ func NewMongoDBIngester(configs *MongoDBIngesterConfig) *MongoDBIngester {
 		panic(err)
 	}
 	m := &MongoDBIngester{
-		ConsumeInterval:    configs.ConsumeInterval,
-		Database:           db,
-		KafkaWorker:        kw,
-		TopicsCallbackList: configs.TopicsCallbackList,
-		CloseChan:          make(chan struct{}, 1),
+		ConsumeInterval: configs.ConsumeInterval,
+		Database:        db,
+		KafkaWorker:     kw,
+		TopicCallback:   configs.TopicCallback,
+		CloseChan:       make(chan struct{}, 1),
 	}
 	return m
 }
@@ -91,7 +90,9 @@ func (m *MongoDBIngester) Consume() error {
 	m.RLock()
 	ci := m.ConsumeInterval
 	m.RUnlock()
+	m.Lock()
 	ev, err := m.KafkaWorker.Consumer.ReadMessage(ci)
+	m.Unlock()
 	if err != nil {
 		return nil
 	}
@@ -105,14 +106,28 @@ func (m *MongoDBIngester) Sink(msg *kafka.Message) error {
 	if err := json.Unmarshal(msg.Value, &value); err != nil {
 		fmt.Printf("Error unmarshalling value %v", err)
 	}
-	
+
+	m.Lock()
+	defer m.Unlock()
 	col := m.Database.Collection(*msg.TopicPartition.Topic)
 	_, err := col.InsertOne(context.TODO(), value)
 	if err != nil {
 		panic(err)
 	}
-	
-	log.Printf("Successfully processed log from topic: %v", 
+
+	// Produce to m.TopicCallback if any.
+	// TODO : Probably export to a separate function ???
+	if m.TopicCallback != "" {
+		m.KafkaWorker.Lock()
+		m.KafkaWorker.Producer.Produce(&kafka.Message{
+			TopicPartition: kafka.TopicPartition{
+				Topic:     &m.TopicCallback,
+				Partition: kafka.PartitionAny},
+			Value: []byte(msg.Value),
+		}, nil)
+	}
+
+	log.Printf("Successfully processed log from topic: %v",
 		*msg.TopicPartition.Topic)
 	return nil
 }

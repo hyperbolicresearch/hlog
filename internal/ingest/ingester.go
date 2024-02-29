@@ -5,7 +5,4 @@ type Ingester interface {
 	Stop() error
 	Consume() error
 	Sink() error
-	// Transform() error
-	// ExtractSchemas() error
-	// Commit() error
 }
