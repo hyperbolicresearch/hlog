@@ -332,5 +332,22 @@ func (i *IngesterWorker) Commit() error {
 // and produce an intermediate representation with it that will later be used
 // in the batching steps to define how to create or alter tables before sinking
 func (i *IngesterWorker) processFields(channel string, chFields []string) error {
+	var repr [][]string
+	var reprUnit []string
+	for j := 0; j < len(chFields); j++ {
+		reprUnit = append (reprUnit, chFields[j])
+		if j % 2 != 0 {
+			repr = append(repr, reprUnit)
+			reprUnit = nil
+		}
+	}
+	
+	// 1. get stored fields for channel
+	// 2. compare against chFields
+	// 3. if stored includes chFields, continue
+	// 4. else, update stored
+	// 5. generate sql (ALTER TABLE...)
+	// 6. apply new sql
+	// 7. store to clickhouse
 	return nil
 }
