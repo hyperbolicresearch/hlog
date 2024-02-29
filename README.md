@@ -1,6 +1,6 @@
 # Hlog
 
-![Web look](https://github.com/hyperbolicresearch/hlog/dev/assets/github_img.png)
+![Web look](https://github.com/hyperbolicresearch/hlog/blob/dev/assets/github_img.png)
 
 > Please, this project is under massive development and one shouldn't take anything written here or in the whole software for definitive facts. We are just conducting experimentations. Keep in mind that the creator(s) is/are just thinking loud (thinking in public) until otherwise said.
 
