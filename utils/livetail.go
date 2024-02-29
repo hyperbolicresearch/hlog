@@ -18,6 +18,7 @@ func LiveTail() {
 		Server:          kafkaServer,
 		GroupId:         "experimental-livetail",
 		AutoOffsetReset: "earliest",
+		EnableAutoCommit: true,
 	}
 	kw, err := kafka_service.NewKafkaWorker(&kafkaConfigs)
 	if err != nil {

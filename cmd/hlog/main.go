@@ -34,6 +34,7 @@ func main() {
 			Server:          kafkaServer,
 			GroupId:         clientId,
 			AutoOffsetReset: "earliest",
+			EnableAutoCommit: true,
 		},
 		KafkaTopics:     topics,
 		ConsumeInterval: time.Duration(100) * time.Millisecond,
