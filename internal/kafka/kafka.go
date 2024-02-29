@@ -34,7 +34,9 @@ type KafkaConfigs struct {
 // NewKafkaWorker creates a new KafkaWorker and returns it
 // with an error message.
 func NewKafkaWorker(configs *KafkaConfigs) (*KafkaWorker, error) {
-	w := &KafkaWorker{}
+	w := &KafkaWorker{
+		Configs: configs,
+	}
 	return w, nil
 }
 
@@ -63,6 +65,9 @@ func (k *KafkaWorker) ConfigureConsumer() error {
 		return fmt.Errorf("failed to create consumer: %v", err)
 	}
 	k.Consumer = consumer
+	k.Lock()
+	k.IsConsumer = true
+	k.Unlock()
 	return nil
 }
 
@@ -76,6 +81,9 @@ func (k *KafkaWorker) ConfigureProducer() error {
 		return fmt.Errorf("failed to create producer: %v", err)
 	}
 	k.Producer = producer
+	k.Lock()
+	k.IsProducer = true
+	k.Unlock()
 	return nil
 }
 
