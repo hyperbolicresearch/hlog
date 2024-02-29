@@ -25,7 +25,6 @@ func main() {
 	clientId := os.Getenv("CLIENT_ID")
 	kafkaServer := os.Getenv("KAFKA_SERVER")
 	topics := strings.Split(channels, ",")
-
 	mongodbUri := os.Getenv("MONGODB_URI")
 
 	stop := make(chan struct{}, 1)
