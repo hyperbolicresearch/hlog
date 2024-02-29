@@ -1,8 +1,8 @@
 # Hlog
 
-> Please, this project is under massive development and one shouldn't take anything written here or in the whole software for definitive facts. We are just conducting experimentations. Keep in mind that the creator(s) is/are just thinking loud (thinking in public) until otherwise said.
-
 ![Web look](https://github.com/hyperbolicresearch/hlog/blob/dev/assets/github_img.png)
+
+> Please, this project is under massive development and one shouldn't take anything written here or in the whole software for definitive facts. We are just conducting experimentations. Keep in mind that the creator(s) is/are just thinking loud (thinking in public) until otherwise said.
 
 Hlog is a log aggregator that provides an end-to-end experience from collecting logs from applications and infrastructures to a complete set of observability, query and processing tools. The project is under development and only a part of it is available. PLEASE, DO NOT USE IN PRODUCTION (yet).
 
