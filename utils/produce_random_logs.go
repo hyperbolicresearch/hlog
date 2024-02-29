@@ -15,12 +15,12 @@ import (
 	"github.com/hyperbolicresearch/hlog/internal/core"
 )
 
-// GenerateRandomLogs generates every in interval seconds
-// logs in a choice of numTopics topics, simulating how many processes
+// GenerateRandomLogs generates logs every in k seconds
+// in a choice of numTopics topics, simulating how many processes
 // would produce logs in ra real-life scenario.
 func GenerateRandomLogs(stop chan struct{}) {
 	quit := make(chan struct{})
-	ticker := time.NewTicker(time.Second * time.Duration(10))
+	ticker := time.NewTicker(time.Second * time.Duration(5))
 
 	// Kafka
 	kafkaConfigs := kafka.ConfigMap{
@@ -66,6 +66,7 @@ func Generate(kafkaProducer *kafka.Producer) {
 	index := rnd.Intn(5)
 	channels := os.Getenv("CHANNELS")
 	topics := strings.Split(channels, ",")
+	channel := topics[index]
 
 	id := uuid.New().String()
 
@@ -98,6 +99,7 @@ func Generate(kafkaProducer *kafka.Producer) {
 	}
 
 	sendableLog := core.Log{
+		Channel:   channel,
 		LogId:     id,
 		SenderId:  senderId,
 		Timestamp: timestamp,
