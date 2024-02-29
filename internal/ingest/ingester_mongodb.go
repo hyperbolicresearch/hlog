@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/hyperbolicresearch/hlog/internal/core"
 	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
 	"github.com/hyperbolicresearch/hlog/internal/mongodb"
@@ -49,6 +49,10 @@ func NewMongoDBIngester(configs *MongoDBIngesterConfig) *MongoDBIngester {
 	if err != nil {
 		panic(err)
 	}
+	err = kw.SubscribeTopics(configs.KafkaTopics)
+	if err != nil {
+		panic(err)
+	}
 	m := &MongoDBIngester{
 		ConsumeInterval: configs.ConsumeInterval,
 		Database:        db,
@@ -83,6 +87,7 @@ func (m *MongoDBIngester) Start() {
 }
 
 func (m *MongoDBIngester) Stop() error {
+	m.CloseChan <- struct{}{}
 	return nil
 }
 
@@ -90,9 +95,7 @@ func (m *MongoDBIngester) Consume() error {
 	m.RLock()
 	ci := m.ConsumeInterval
 	m.RUnlock()
-	m.Lock()
 	ev, err := m.KafkaWorker.Consumer.ReadMessage(ci)
-	m.Unlock()
 	if err != nil {
 		return nil
 	}
@@ -107,8 +110,8 @@ func (m *MongoDBIngester) Sink(msg *kafka.Message) error {
 		fmt.Printf("Error unmarshalling value %v", err)
 	}
 
-	m.Lock()
-	defer m.Unlock()
+	// m.Lock()
+	// defer m.Unlock()
 	col := m.Database.Collection(*msg.TopicPartition.Topic)
 	_, err := col.InsertOne(context.TODO(), value)
 	if err != nil {
@@ -125,9 +128,10 @@ func (m *MongoDBIngester) Sink(msg *kafka.Message) error {
 				Partition: kafka.PartitionAny},
 			Value: []byte(msg.Value),
 		}, nil)
+		m.KafkaWorker.Unlock()
 	}
 
-	log.Printf("Successfully processed log from topic: %v",
-		*msg.TopicPartition.Topic)
+	log.Printf("Successfully processed log from topic: %-10v Message: %v",
+		*msg.TopicPartition.Topic, value.Message)
 	return nil
 }

@@ -38,7 +38,7 @@ func main() {
 		KafkaTopics:     topics,
 		ConsumeInterval: time.Duration(100) * time.Millisecond,
 		MongoServer:     mongodbUri,
-		TopicCallback:   "",
+		TopicCallback:   "hyperclusters-1415-livetail",
 		Database:        clientId,
 	}
 	MDBIngester := ingest.NewMongoDBIngester(&mongodbConfigs)
