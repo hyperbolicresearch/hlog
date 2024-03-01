@@ -12,6 +12,8 @@ import (
 	"syscall"
 	"time"
 
+	"go.mongodb.org/mongo-driver/mongo"
+
 	clickhouse_connector "github.com/hyperbolicresearch/hlog/internal/clickhouse"
 	"github.com/hyperbolicresearch/hlog/internal/core"
 	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
@@ -20,6 +22,7 @@ import (
 type IngesterWorker struct {
 	sync.RWMutex
 	*kafka_service.KafkaWorker
+	MongoDatabase *mongo.Database
 	IsRunning bool
 	Messages  *Messages
 	// BufferSchemas stores the different schemas (one schema per channel)
@@ -207,30 +210,9 @@ func (i *IngesterWorker) Transform() error {
 }
 
 func (i *IngesterWorker) ExtractSchemas() error {
-	// i.Messages.RLock()
-	// data := i.Messages.TransformedData
-	// i.Messages.RUnlock()
-
-	data := []map[string]interface{}{
-		{
-			// metadata
-			"_channel":   "testnet",
-			"_logid":     "0000-0000-0000-0000-0000",
-			"_senderid":  "test-1234",
-			"_timestamp": int64(1709118220916),
-			"_level":     "debug",
-			"_message":   "lorem ipsum dolor",
-			"_data":      map[string]interface{}{"bar": "helloworld", "foo": 1},
-			// fields
-			"foo": 1,
-			"bar": "helloworld",
-			// field arrays
-			"int.keys":      []string{"foo"},
-			"int.values":    []int{1},
-			"string.keys":   []string{"bar"},
-			"string.values": []string{"helloworld"},
-		},
-	}
+	i.Messages.RLock()
+	data := i.Messages.TransformedData
+	i.Messages.RUnlock()
 
 	// get the part from messages that we are saving in the db
 	// we only store metadata adn field arrays. fields are only
