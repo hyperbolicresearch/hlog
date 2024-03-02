@@ -23,8 +23,8 @@ type IngesterWorker struct {
 	sync.RWMutex
 	*kafka_service.KafkaWorker
 	MongoDatabase *mongo.Database
-	IsRunning bool
-	Messages  *Messages
+	IsRunning     bool
+	Messages      *Messages
 	// BufferSchemas stores the different schemas (one schema per channel)
 	//from the buffered messages.
 	BufferSchemas map[string][]interface{}

@@ -27,11 +27,11 @@ type MongoDBIngester struct {
 }
 
 type MongoDBIngesterConfig struct {
-	// Kafka related configurations
+	// Kafka-related configurations
 	KafkaConfigs    kafka_service.KafkaConfigs
 	KafkaTopics     []string
 	ConsumeInterval time.Duration
-	// MongoDb related configurations
+	// MongoDB-related configurations
 	MongoServer   string
 	TopicCallback string
 	Database      string

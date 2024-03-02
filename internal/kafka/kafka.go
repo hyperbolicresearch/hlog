@@ -18,7 +18,6 @@ type KafkaWorker struct {
 	sync.RWMutex
 	*kafka.Consumer
 	*kafka.Producer
-
 	Configs    *KafkaConfigs
 	IsConsumer bool
 	IsProducer bool
