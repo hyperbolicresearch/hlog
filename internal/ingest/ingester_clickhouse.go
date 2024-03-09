@@ -92,6 +92,7 @@ func NewIngesterWorker() *IngesterWorker {
 		MaxBatchableSize: 1000,
 		MaxBatchableWait: time.Duration(5) * time.Second,
 	}
+
 	return _i
 }
 
@@ -131,6 +132,7 @@ func (i *IngesterWorker) Stop() error {
 	i.Lock()
 	defer i.Unlock()
 	i.IsRunning = false
+
 	return nil
 }
 
@@ -167,6 +169,7 @@ func (i *IngesterWorker) Consume() error {
 	// Sink)
 	<-i.CanCommit
 	i.Commit()
+
 	return nil
 }
 
@@ -212,6 +215,7 @@ func (i *IngesterWorker) Transform() error {
 		i.Messages.TransformedData = append(i.Messages.TransformedData, t)
 		i.Messages.Unlock()
 	}
+
 	return nil
 }
 
@@ -273,6 +277,13 @@ func (i *IngesterWorker) ExtractSchemas() error {
 		return err
 	}
 
+	if err := chConn.Exec(context.Background(), "CREATE DATABASE IF NOT EXISTS hlog"); err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println("Created new DB")
+	}
+
+
 	// For each channel, we extract the schema
 	for channel, channelValue := range dataByChannel {
 		jsonStorableData, err := json.Marshal(channelValue)
@@ -316,6 +327,7 @@ func (i *IngesterWorker) ExtractSchemas() error {
 		// process the fields that we extracted
 		i.processFields(channel, chFields)
 	}
+
 	return nil
 }
 
@@ -324,6 +336,7 @@ func (i *IngesterWorker) Sink() error {
 	// 2. sink the data to clickhouse
 	// 3. write to CanCommit channel
 	i.CanCommit <- struct{}{}
+
 	return nil
 }
 
@@ -403,7 +416,7 @@ func generateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 	for key, value := range schema {
 		newLine := fmt.Sprintf("  `%s` %s,\n", key, value)
 		// we will sort by logid, so it should not be nullable. indeed,
-		// all log si required by design to have a logid.
+		// all log is required by design to have a logid.
 		if key == "_logid" {
 			newLine = fmt.Sprintf("  `%s` String,\n", key)
 		}
@@ -417,7 +430,7 @@ func generateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 
 	fmt.Println(_sql)
 
-	addrs := []string{"localhost:9000"}
+	addrs := []string{"127.0.0.1:9000"}
 	chConn, err := clickhouse_connector.Conn(addrs)
 	if err != nil {
 		return err
