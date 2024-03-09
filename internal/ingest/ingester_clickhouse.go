@@ -217,8 +217,29 @@ func (i *IngesterWorker) Transform() error {
 
 func (i *IngesterWorker) ExtractSchemas() error {
 	i.Messages.RLock()
-	data := i.Messages.TransformedData
+	// data := i.Messages.TransformedData
 	i.Messages.RUnlock()
+
+	data := []map[string]interface{}{
+		{
+			// metadata
+			"_channel":   "testnet",
+			"_logid":     "0000-0000-0000-0000-0000",
+			"_senderid":  "test-1234",
+			"_timestamp": int64(1709118220916),
+			"_level":     "debug",
+			"_message":   "lorem ipsum dolor",
+			"_data":      map[string]interface{}{"bar": "helloworld", "foo": 1},
+			// fields
+			"foo": 1,
+			"bar": "helloworld",
+			// field arrays
+			"int.keys":      []string{"foo"},
+			"int.values":    []int{1},
+			"string.keys":   []string{"bar"},
+			"string.values": []string{"helloworld"},
+		},
+	}
 
 	// get the part from messages that we are saving in the db
 	// we only store metadata adn field arrays. fields are only
@@ -341,10 +362,12 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 		result = repr
 		toCreate = true
 	}
-	var sqlQuery string
 	if toCreate {
 		// CREATE TABLE ...
-		sqlQuery = generateSQL(result, channel, false)
+		err := generateSQLAndApply(result, channel, false)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		// that means the document was found, which implies that we
 		// should verify whether we should update fields or not
@@ -356,16 +379,19 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 		}
 		if len(toUpdate) > 0 {
 			// ALTER TABLE ...
-			sqlQuery = generateSQL(toUpdate, channel, true)
+			err := generateSQLAndApply(toUpdate, channel, true)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 	
-	fmt.Println(sqlQuery)
 	return nil
 }
 
-// generateSQL generates a 
-func generateSQL(schema map[string]string, table string, isAlter bool) string {
+// generateSQLAndApply generates the SQL query for either creating or altering the
+// Clickhouse schema for a given table and makes the given changes to the database.
+func generateSQLAndApply(schema map[string]string, table string, isAlter bool) error {
 	var _sql string
 	switch isAlter {
 	case true:
@@ -375,10 +401,32 @@ func generateSQL(schema map[string]string, table string, isAlter bool) string {
 	}
 	
 	for key, value := range schema {
-		newLine := fmt.Sprintf("  %s %s,\n", key, value)
+		newLine := fmt.Sprintf("  `%s` %s,\n", key, value)
+		// we will sort by logid, so it should not be nullable. indeed,
+		// all log si required by design to have a logid.
+		if key == "_logid" {
+			newLine = fmt.Sprintf("  `%s` String,\n", key)
+		}
 		_sql += newLine
 	}
-	_sql += ");"
-	return _sql
+	_sql += ")"
+	_sql += "\nENGINE = MergeTree()"
+	_sql += "\nPRIMARY KEY (_logid)"
+	_sql += "\nORDER BY _logid"
+	// _sql += "\nSET allow_nullable_key = true"
+
+	fmt.Println(_sql)
+
+	addrs := []string{"localhost:9000"}
+	chConn, err := clickhouse_connector.Conn(addrs)
+	if err != nil {
+		return err
+	}
+	err = chConn.Exec(context.Background(), _sql)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
