@@ -12,11 +12,13 @@ import (
 	"syscall"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	clickhouse_connector "github.com/hyperbolicresearch/hlog/internal/clickhouse"
 	"github.com/hyperbolicresearch/hlog/internal/core"
 	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
+	"github.com/hyperbolicresearch/hlog/internal/mongodb"
 )
 
 type IngesterWorker struct {
@@ -62,6 +64,7 @@ func NewIngesterWorker() *IngesterWorker {
 		Server:           kafkaServer,
 		GroupId:          groupId,
 		EnableAutoCommit: false,
+		AutoOffsetReset:  "earliest",
 	}
 	kw, err := kafka_service.NewKafkaWorker(&kConfigs)
 	if err != nil {
@@ -75,8 +78,11 @@ func NewIngesterWorker() *IngesterWorker {
 	if err != nil {
 		panic(err)
 	}
+	mongoClient := mongodb.Client("mongodb://localhost:27017/")
+	db := mongoClient.Database("hyperclusters-1415")
 
 	_i := &IngesterWorker{
+		MongoDatabase:    db,
 		Messages:         &Messages{},
 		BufferSchemas:    make(map[string][]interface{}),
 		KafkaWorker:      kw,
@@ -310,22 +316,69 @@ func (i *IngesterWorker) Commit() error {
 // and produce an intermediate representation with it that will later be used
 // in the batching steps to define how to create or alter tables before sinking
 func (i *IngesterWorker) processFields(channel string, chFields []string) error {
-	var repr [][]string
-	var reprUnit []string
-	for j := 0; j < len(chFields); j++ {
-		reprUnit = append(reprUnit, chFields[j])
-		if j%2 != 0 {
-			repr = append(repr, reprUnit)
-			reprUnit = nil
-		}
+	repr := map[string]string{}
+	for j := 0; j <= len(chFields)-2; j += 2 {
+		key := chFields[j]
+		value := chFields[j+1]
+		repr[key] = value
 	}
 
-	// 1. get stored fields for channel
-	// 2. compare against chFields
-	// 3. if stored includes chFields, continue
-	// 4. else, update stored
-	// 5. generate sql (ALTER TABLE...)
-	// 6. apply new sql
-	// 7. store to clickhouse
+	i.RLock()
+	col := i.MongoDatabase.Collection("_sqlschema")
+	i.RUnlock()
+	filter := bson.D{}
+	var result map[string]string
+	var toCreate bool = false
+	err := col.FindOne(context.TODO(), filter).Decode(&result)
+	if err != nil {
+		// means that either there is no schema because that's the first
+		// time this clientID sends logs or that the data was corrupted.
+		// we therefore create a new one
+		_, err := col.InsertOne(context.TODO(), repr)
+		if err != nil {
+			panic(err)
+		}
+		result = repr
+		toCreate = true
+	}
+	var sqlQuery string
+	if toCreate {
+		// CREATE TABLE ...
+		sqlQuery = generateSQL(result, channel, false)
+	} else {
+		// that means the document was found, which implies that we
+		// should verify whether we should update fields or not
+		toUpdate := map[string]string{}
+		for key, value := range repr {
+			if _, ok := result[key]; !ok {
+				toUpdate[key] = value
+			}
+		}
+		if len(toUpdate) > 0 {
+			// ALTER TABLE ...
+			sqlQuery = generateSQL(toUpdate, channel, true)
+		}
+	}
+	
+	fmt.Println(sqlQuery)
 	return nil
 }
+
+// generateSQL generates a 
+func generateSQL(schema map[string]string, table string, isAlter bool) string {
+	var _sql string
+	switch isAlter {
+	case true:
+		_sql += fmt.Sprintf("ALTER TABLE %s ADD COLUMN (\n", table)
+	case false:
+		_sql += fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (\n", table)
+	}
+	
+	for key, value := range schema {
+		newLine := fmt.Sprintf("  %s %s,\n", key, value)
+		_sql += newLine
+	}
+	_sql += ");"
+	return _sql
+}
+
