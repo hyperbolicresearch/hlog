@@ -277,13 +277,6 @@ func (i *IngesterWorker) ExtractSchemas() error {
 		return err
 	}
 
-	if err := chConn.Exec(context.Background(), "CREATE DATABASE IF NOT EXISTS hlog"); err != nil {
-		fmt.Println(err)
-	} else {
-		fmt.Println("Created new DB")
-	}
-
-
 	// For each channel, we extract the schema
 	for channel, channelValue := range dataByChannel {
 		jsonStorableData, err := json.Marshal(channelValue)
@@ -327,6 +320,19 @@ func (i *IngesterWorker) ExtractSchemas() error {
 		// process the fields that we extracted
 		i.processFields(channel, chFields)
 	}
+
+	// TODO this is just experimental. actually, i can sink data to clickhouse, i just have
+	// to implement the sink and the commit
+	var (
+		_logid    string
+		_senderid string 
+	)
+	query := "SELECT _logid, _senderid FROM default.testnet"
+        row := chConn.QueryRow(context.Background(), query)
+	if err := row.Scan(&_logid, &_senderid); err != nil {
+		panic(err)
+	}
+	fmt.Println(_logid, _senderid)
 
 	return nil
 }
@@ -398,7 +404,7 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -410,9 +416,9 @@ func generateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 	case true:
 		_sql += fmt.Sprintf("ALTER TABLE %s ADD COLUMN (\n", table)
 	case false:
-		_sql += fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (\n", table)
+		_sql += fmt.Sprintf("CREATE TABLE %s (\n", table)
 	}
-	
+
 	for key, value := range schema {
 		newLine := fmt.Sprintf("  `%s` %s,\n", key, value)
 		// we will sort by logid, so it should not be nullable. indeed,
@@ -423,12 +429,10 @@ func generateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 		_sql += newLine
 	}
 	_sql += ")"
-	_sql += "\nENGINE = MergeTree()"
+	_sql += "\nENGINE = MergeTree"
 	_sql += "\nPRIMARY KEY (_logid)"
 	_sql += "\nORDER BY _logid"
 	// _sql += "\nSET allow_nullable_key = true"
-
-	fmt.Println(_sql)
 
 	addrs := []string{"127.0.0.1:9000"}
 	chConn, err := clickhouse_connector.Conn(addrs)
@@ -442,4 +446,3 @@ func generateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 
 	return nil
 }
-
