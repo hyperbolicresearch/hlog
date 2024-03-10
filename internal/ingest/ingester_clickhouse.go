@@ -413,8 +413,8 @@ func generateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 // of further transformed messages, with only the fields that will be stored
 // on ClickHouse.
 func getStorableData(raw []map[string]interface{}) []map[string]interface{} {
-	storableData := make([]map[string]interface{}, 0, len(data))
-	for _, item := range data {
+	storableData := make([]map[string]interface{}, 0, len(raw))
+	for _, item := range storableData {
 		kv := map[string]interface{}{}
 		for k, v := range item {
 			if strings.HasPrefix(k, "_") || strings.Contains(k, ".") {
