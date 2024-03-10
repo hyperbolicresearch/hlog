@@ -416,7 +416,7 @@ func generateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 	case true:
 		_sql += fmt.Sprintf("ALTER TABLE %s ADD COLUMN (\n", table)
 	case false:
-		_sql += fmt.Sprintf("CREATE TABLE %s (\n", table)
+		_sql += fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (\n", table)
 	}
 
 	for key, value := range schema {
