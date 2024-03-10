@@ -133,5 +133,6 @@ func (m *MongoDBIngester) Sink(msg *kafka.Message) error {
 
 	log.Printf("Successfully processed log from topic: %-10v Message: %v",
 		*msg.TopicPartition.Topic, value.Message)
+
 	return nil
 }

@@ -16,7 +16,6 @@ func Conn(addrs []string) (driver.Conn, error) {
 			Database: "default",
 			Username: "default",
 		},
-		MaxOpenConns: 5,
 	})
 
 	if err != nil {

@@ -97,7 +97,7 @@ func NewIngesterWorker() *IngesterWorker {
 }
 
 // Start spins up the consuming process generally speaking. It runs as
-// long as i.IsRunning is true and tracks
+// long as i.IsRunning is true and tracks new incomming logs
 func (i *IngesterWorker) Start() {
 	// TODO: Should I really panic here?
 	i.RLock()
@@ -219,58 +219,22 @@ func (i *IngesterWorker) Transform() error {
 	return nil
 }
 
+
+
 func (i *IngesterWorker) ExtractSchemas() error {
 	i.Messages.RLock()
-	// data := i.Messages.TransformedData
+	data := i.Messages.TransformedData
 	i.Messages.RUnlock()
-
-	data := []map[string]interface{}{
-		{
-			// metadata
-			"_channel":   "testnet",
-			"_logid":     "0000-0000-0000-0000-0000",
-			"_senderid":  "test-1234",
-			"_timestamp": int64(1709118220916),
-			"_level":     "debug",
-			"_message":   "lorem ipsum dolor",
-			"_data":      map[string]interface{}{"bar": "helloworld", "foo": 1},
-			// fields
-			"foo": 1,
-			"bar": "helloworld",
-			// field arrays
-			"int.keys":      []string{"foo"},
-			"int.values":    []int{1},
-			"string.keys":   []string{"bar"},
-			"string.values": []string{"helloworld"},
-		},
-	}
 
 	// get the part from messages that we are saving in the db
 	// we only store metadata adn field arrays. fields are only
 	// materialized when needed (in the future)
-	storableData := make([]map[string]interface{}, 0, len(data))
-	for _, item := range data {
-		kv := map[string]interface{}{}
-		for k, v := range item {
-			if strings.HasPrefix(k, "_") || strings.Contains(k, ".") {
-				kv[k] = v
-			}
-		}
-		storableData = append(storableData, kv)
-	}
+    storableData := getStorableData(data)
 
 	// group messages by channel
-	dataByChannel := make(map[string][]interface{})
-	for _, item := range storableData {
-		// we are grouping by channel (channel <=> table)
-		key := item["_channel"].(string)
-		if _, exists := dataByChannel[key]; !exists {
-			dataByChannel[key] = []interface{}{item}
-		} else {
-			dataByChannel[key] = append(dataByChannel[key], item)
-		}
-	}
+	dataByChannel := getDataByChannel(storableData)
 
+	// TODO Make config
 	addrs := []string{"localhost:9000"}
 	chConn, err := clickhouse_connector.Conn(addrs)
 	if err != nil {
@@ -321,8 +285,8 @@ func (i *IngesterWorker) ExtractSchemas() error {
 		i.processFields(channel, chFields)
 	}
 
-	// TODO this is just experimental. actually, i can sink data to clickhouse, i just have
-	// to implement the sink and the commit
+	// TODO this is just experimental. actually, i can sink data to clickhouse, 
+	// i just have to implement the sink and the commit
 	var (
 		_logid    string
 		_senderid string 
@@ -337,10 +301,8 @@ func (i *IngesterWorker) ExtractSchemas() error {
 	return nil
 }
 
+// Sink is suppose to add the data to ClickHouse
 func (i *IngesterWorker) Sink() error {
-	// 1. alter table if needed for each slice
-	// 2. sink the data to clickhouse
-	// 3. write to CanCommit channel
 	i.CanCommit <- struct{}{}
 
 	return nil
@@ -446,3 +408,37 @@ func generateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 
 	return nil
 }
+
+// getStorableData gets a list of transformed messages and return only a list
+// of further transformed messages, with only the fields that will be stored
+// on ClickHouse.
+func getStorableData(raw []map[string]interface{}) []map[string]interface{} {
+	storableData := make([]map[string]interface{}, 0, len(data))
+	for _, item := range data {
+		kv := map[string]interface{}{}
+		for k, v := range item {
+			if strings.HasPrefix(k, "_") || strings.Contains(k, ".") {
+				kv[k] = v
+			}
+		}
+		storableData = append(storableData, kv)
+	}
+	return storableData
+}
+
+// getDataByChannel transforms a slice of messages and return a
+// map where they are grouped by <_channel>.
+func getDataByChannel(data []map[string]interface{}) map[string][]map[string]interface{} {
+	dataByChannel := make(map[string][]map[string]interface{})
+	for _, item := range data {
+		// we are grouping by channel (channel <=> table)
+		key := item["_channel"].(string)
+		if _, exists := dataByChannel[key]; !exists {
+			dataByChannel[key] = []map[string]interface{}{item}
+		} else {
+			dataByChannel[key] = append(dataByChannel[key], item)
+		}
+	}
+	return dataByChannel
+}
+
