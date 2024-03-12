@@ -21,8 +21,11 @@ import (
 	"github.com/hyperbolicresearch/hlog/internal/mongodb"
 )
 
+// IngesterWorker is responsible the handle the end-to-end dumping
+// of data to ClickHouse
 type IngesterWorker struct {
 	sync.RWMutex
+	*BatcherWorker
 	*kafka_service.KafkaWorker
 	MongoDatabase *mongo.Database
 	IsRunning     bool
@@ -83,6 +86,7 @@ func NewIngesterWorker() *IngesterWorker {
 
 	_i := &IngesterWorker{
 		MongoDatabase:    db,
+		BatcherWorker:    &BatcherWorker{},
 		Messages:         &Messages{},
 		BufferSchemas:    make(map[string][]interface{}),
 		KafkaWorker:      kw,
@@ -162,7 +166,7 @@ func (i *IngesterWorker) Consume() error {
 	// sink of the buffered data to ClickHouse.
 	_ = i.Transform()
 	_ = i.ExtractSchemas()
-	go i.Sink()
+	go i.Sink(i.Messages.TransformedData, i.CanCommit)
 
 	// Waiting until we have the acks that we successfully sink
 	// the data to ClickHouse (which should be sent from inside
@@ -219,8 +223,8 @@ func (i *IngesterWorker) Transform() error {
 	return nil
 }
 
-
-
+// ExtractSchemas takes a bunch of data and extracts the SQL compatible
+// schema out of them.
 func (i *IngesterWorker) ExtractSchemas() error {
 	i.Messages.RLock()
 	data := i.Messages.TransformedData
@@ -229,10 +233,10 @@ func (i *IngesterWorker) ExtractSchemas() error {
 	// get the part from messages that we are saving in the db
 	// we only store metadata adn field arrays. fields are only
 	// materialized when needed (in the future)
-    storableData := getStorableData(data)
+	storableData := GetStorableData(data)
 
 	// group messages by channel
-	dataByChannel := getDataByChannel(storableData)
+	dataByChannel := GetDataByChannel(storableData)
 
 	// TODO Make config
 	addrs := []string{"localhost:9000"}
@@ -285,29 +289,10 @@ func (i *IngesterWorker) ExtractSchemas() error {
 		i.processFields(channel, chFields)
 	}
 
-	// TODO this is just experimental. actually, i can sink data to clickhouse, 
-	// i just have to implement the sink and the commit
-	var (
-		_logid    string
-		_senderid string 
-	)
-	query := "SELECT _logid, _senderid FROM default.testnet"
-        row := chConn.QueryRow(context.Background(), query)
-	if err := row.Scan(&_logid, &_senderid); err != nil {
-		panic(err)
-	}
-	fmt.Println(_logid, _senderid)
-
 	return nil
 }
 
-// Sink is suppose to add the data to ClickHouse
-func (i *IngesterWorker) Sink() error {
-	i.CanCommit <- struct{}{}
-
-	return nil
-}
-
+// Commit will turn commit the current offset in kafka
 func (i *IngesterWorker) Commit() error {
 	// 1. commit to current offset in kafka
 	// 2. log about batch processing completion
@@ -345,7 +330,7 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 	}
 	if toCreate {
 		// CREATE TABLE ...
-		err := generateSQLAndApply(result, channel, false)
+		err := GenerateSQLAndApply(result, channel, false)
 		if err != nil {
 			panic(err)
 		}
@@ -360,7 +345,7 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 		}
 		if len(toUpdate) > 0 {
 			// ALTER TABLE ...
-			err := generateSQLAndApply(toUpdate, channel, true)
+			err := GenerateSQLAndApply(toUpdate, channel, true)
 			if err != nil {
 				panic(err)
 			}
@@ -369,76 +354,3 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 
 	return nil
 }
-
-// generateSQLAndApply generates the SQL query for either creating or altering the
-// Clickhouse schema for a given table and makes the given changes to the database.
-func generateSQLAndApply(schema map[string]string, table string, isAlter bool) error {
-	var _sql string
-	switch isAlter {
-	case true:
-		_sql += fmt.Sprintf("ALTER TABLE %s ADD COLUMN (\n", table)
-	case false:
-		_sql += fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (\n", table)
-	}
-
-	for key, value := range schema {
-		newLine := fmt.Sprintf("  `%s` %s,\n", key, value)
-		// we will sort by logid, so it should not be nullable. indeed,
-		// all log is required by design to have a logid.
-		if key == "_logid" {
-			newLine = fmt.Sprintf("  `%s` String,\n", key)
-		}
-		_sql += newLine
-	}
-	_sql += ")"
-	_sql += "\nENGINE = MergeTree"
-	_sql += "\nPRIMARY KEY (_logid)"
-	_sql += "\nORDER BY _logid"
-	// _sql += "\nSET allow_nullable_key = true"
-
-	addrs := []string{"127.0.0.1:9000"}
-	chConn, err := clickhouse_connector.Conn(addrs)
-	if err != nil {
-		return err
-	}
-	err = chConn.Exec(context.Background(), _sql)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// getStorableData gets a list of transformed messages and return only a list
-// of further transformed messages, with only the fields that will be stored
-// on ClickHouse.
-func getStorableData(raw []map[string]interface{}) []map[string]interface{} {
-	storableData := make([]map[string]interface{}, 0, len(raw))
-	for _, item := range storableData {
-		kv := map[string]interface{}{}
-		for k, v := range item {
-			if strings.HasPrefix(k, "_") || strings.Contains(k, ".") {
-				kv[k] = v
-			}
-		}
-		storableData = append(storableData, kv)
-	}
-	return storableData
-}
-
-// getDataByChannel transforms a slice of messages and return a
-// map where they are grouped by <_channel>.
-func getDataByChannel(data []map[string]interface{}) map[string][]map[string]interface{} {
-	dataByChannel := make(map[string][]map[string]interface{})
-	for _, item := range data {
-		// we are grouping by channel (channel <=> table)
-		key := item["_channel"].(string)
-		if _, exists := dataByChannel[key]; !exists {
-			dataByChannel[key] = []map[string]interface{}{item}
-		} else {
-			dataByChannel[key] = append(dataByChannel[key], item)
-		}
-	}
-	return dataByChannel
-}
-
