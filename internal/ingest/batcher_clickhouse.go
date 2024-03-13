@@ -5,7 +5,7 @@ import (
 )
 
 type Batcher interface {
-	Sink(data []map[string]interface{}, endC chan struct{}) error
+	Sink(data []map[string]interface{}, endC chan struct{}) (int, error)
 	
 }
 
@@ -16,7 +16,7 @@ type BatcherWorker struct {
 // Sync will receive a slice of data ready to be added to ClickHouse
 // and will proceed to the dumping of those data in an efficient
 // manner, givent the shape of the data.
-func (b *BatcherWorker) Sink(data []map[string]interface{}, endC chan struct{}) error {
+func (b *BatcherWorker) Sink(data []map[string]interface{}, endC chan struct{}) (int, error) {
 	endC <- struct{}{}
-	return nil
+	return 0, nil
 }
