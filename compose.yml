@@ -1,0 +1,15 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server
+    ports:
+      - 9000:9000
+  mongodb:
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+  kafka:
+    image: confluentinc/confluent-local
+    ports:
+      - 65007:65007
+      - 8082:8082

@@ -12,16 +12,24 @@ import (
 	"syscall"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+
 	clickhouse_connector "github.com/hyperbolicresearch/hlog/internal/clickhouse"
 	"github.com/hyperbolicresearch/hlog/internal/core"
 	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
+	"github.com/hyperbolicresearch/hlog/internal/mongodb"
 )
 
+// IngesterWorker is responsible the handle the end-to-end dumping
+// of data to ClickHouse
 type IngesterWorker struct {
 	sync.RWMutex
+	*BatcherWorker
 	*kafka_service.KafkaWorker
-	IsRunning bool
-	Messages  *Messages
+	MongoDatabase *mongo.Database
+	IsRunning     bool
+	Messages      *Messages
 	// BufferSchemas stores the different schemas (one schema per channel)
 	//from the buffered messages.
 	BufferSchemas map[string][]interface{}
@@ -43,6 +51,8 @@ type IngesterWorker struct {
 	MaxBatchableWait time.Duration
 }
 
+// Messages is the data structure holding the messages that will be
+// written to ClickHouse.
 type Messages struct {
 	sync.RWMutex
 	Data            []*core.Log
@@ -59,6 +69,7 @@ func NewIngesterWorker() *IngesterWorker {
 		Server:           kafkaServer,
 		GroupId:          groupId,
 		EnableAutoCommit: false,
+		AutoOffsetReset:  "earliest",
 	}
 	kw, err := kafka_service.NewKafkaWorker(&kConfigs)
 	if err != nil {
@@ -72,8 +83,12 @@ func NewIngesterWorker() *IngesterWorker {
 	if err != nil {
 		panic(err)
 	}
+	mongoClient := mongodb.Client("mongodb://localhost:27017/")
+	db := mongoClient.Database("hyperclusters-1415")
 
 	_i := &IngesterWorker{
+		MongoDatabase:    db,
+		BatcherWorker:    &BatcherWorker{},
 		Messages:         &Messages{},
 		BufferSchemas:    make(map[string][]interface{}),
 		KafkaWorker:      kw,
@@ -87,7 +102,7 @@ func NewIngesterWorker() *IngesterWorker {
 }
 
 // Start spins up the consuming process generally speaking. It runs as
-// long as i.IsRunning is true and tracks
+// long as i.IsRunning is true and tracks new incomming logs
 func (i *IngesterWorker) Start() {
 	// TODO: Should I really panic here?
 	i.RLock()
@@ -151,12 +166,15 @@ func (i *IngesterWorker) Consume() error {
 	// sink of the buffered data to ClickHouse.
 	_ = i.Transform()
 	_ = i.ExtractSchemas()
-	go i.Sink()
+	_, err := i.Sink(i.Messages.TransformedData)
+	if err != nil {
+		panic(err)
+	}
 
 	// Waiting until we have the acks that we successfully sink
 	// the data to ClickHouse (which should be sent from inside
 	// Sink)
-	<-i.CanCommit
+	// <-i.CanCommit
 	i.Commit()
 	return nil
 }
@@ -199,65 +217,32 @@ func (i *IngesterWorker) Transform() error {
 				t["float64.values"] = append(t["float64.values"].([]float64), v.(float64))
 			}
 		}
+		sortedT, _, err := SortMap(t)
+		if err != nil {
+			return err
+		}
 		i.Messages.Lock()
-		i.Messages.TransformedData = append(i.Messages.TransformedData, t)
+		i.Messages.TransformedData = append(i.Messages.TransformedData, sortedT)
 		i.Messages.Unlock()
 	}
 	return nil
 }
 
+// ExtractSchemas takes a bunch of data and extracts the SQL compatible
+// schema out of them.
 func (i *IngesterWorker) ExtractSchemas() error {
-	// i.Messages.RLock()
-	// data := i.Messages.TransformedData
-	// i.Messages.RUnlock()
-
-	data := []map[string]interface{}{
-		{
-			// metadata
-			"_channel":   "testnet",
-			"_logid":     "0000-0000-0000-0000-0000",
-			"_senderid":  "test-1234",
-			"_timestamp": int64(1709118220916),
-			"_level":     "debug",
-			"_message":   "lorem ipsum dolor",
-			"_data":      map[string]interface{}{"bar": "helloworld", "foo": 1},
-			// fields
-			"foo": 1,
-			"bar": "helloworld",
-			// field arrays
-			"int.keys":      []string{"foo"},
-			"int.values":    []int{1},
-			"string.keys":   []string{"bar"},
-			"string.values": []string{"helloworld"},
-		},
-	}
+	i.Messages.RLock()
+	data := i.Messages.TransformedData
+	i.Messages.RUnlock()
 
 	// get the part from messages that we are saving in the db
 	// we only store metadata adn field arrays. fields are only
 	// materialized when needed (in the future)
-	storableData := make([]map[string]interface{}, 0, len(data))
-	for _, item := range data {
-		kv := map[string]interface{}{}
-		for k, v := range item {
-			if strings.HasPrefix(k, "_") || strings.Contains(k, ".") {
-				kv[k] = v
-			}
-		}
-		storableData = append(storableData, kv)
-	}
-
+	storableData := GetStorableData(data)
 	// group messages by channel
-	dataByChannel := make(map[string][]interface{})
-	for _, item := range storableData {
-		// we are grouping by channel (channel <=> table)
-		key := item["_channel"].(string)
-		if _, exists := dataByChannel[key]; !exists {
-			dataByChannel[key] = []interface{}{item}
-		} else {
-			dataByChannel[key] = append(dataByChannel[key], item)
-		}
-	}
+	dataByChannel := GetDataByChannel(storableData)
 
+	// TODO Make config
 	addrs := []string{"localhost:9000"}
 	chConn, err := clickhouse_connector.Conn(addrs)
 	if err != nil {
@@ -286,9 +271,6 @@ func (i *IngesterWorker) ExtractSchemas() error {
 			vars[j] = reflect.New(columnTypes[j].ScanType()).Interface()
 		}
 
-		// We will populate this with the pairs (column_name, column_type)
-		// for further processing.
-
 		var chFields []string
 		for rows.Next() {
 			if err := rows.Scan(vars...); err != nil {
@@ -304,20 +286,12 @@ func (i *IngesterWorker) ExtractSchemas() error {
 				}
 			}
 		}
-		// process the fields that we extracted
 		i.processFields(channel, chFields)
 	}
 	return nil
 }
 
-func (i *IngesterWorker) Sink() error {
-	// 1. alter table if needed for each slice
-	// 2. sink the data to clickhouse
-	// 3. write to CanCommit channel
-	i.CanCommit <- struct{}{}
-	return nil
-}
-
+// Commit will turn commit the current offset in kafka
 func (i *IngesterWorker) Commit() error {
 	// 1. commit to current offset in kafka
 	// 2. log about batch processing completion
@@ -328,22 +302,55 @@ func (i *IngesterWorker) Commit() error {
 // and produce an intermediate representation with it that will later be used
 // in the batching steps to define how to create or alter tables before sinking
 func (i *IngesterWorker) processFields(channel string, chFields []string) error {
-	var repr [][]string
-	var reprUnit []string
-	for j := 0; j < len(chFields); j++ {
-		reprUnit = append(reprUnit, chFields[j])
-		if j%2 != 0 {
-			repr = append(repr, reprUnit)
-			reprUnit = nil
-		}
+	// we create a map-representation of the channel fields (chFields)
+	// in the form: {...field_name, ...field_type}
+	repr := map[string]string{}
+	for j := 0; j <= len(chFields)-2; j += 2 {
+		key := chFields[j]
+		value := chFields[j+1]
+		repr[key] = value
 	}
 
-	// 1. get stored fields for channel
-	// 2. compare against chFields
-	// 3. if stored includes chFields, continue
-	// 4. else, update stored
-	// 5. generate sql (ALTER TABLE...)
-	// 6. apply new sql
-	// 7. store to clickhouse
+	i.RLock()
+	col := i.MongoDatabase.Collection("_sqlschemas")
+	i.RUnlock()
+	filter := bson.D{{"channel", "channel"}}
+	var result map[string]string
+	var toCreate bool = false
+	err := col.FindOne(context.TODO(), filter).Decode(&result)
+	if err != nil {
+		// means that either there is no schema because that's the first
+		// time this clientID sends logs or that the data was corrupted.
+		// we therefore create a new one
+		_, err := col.InsertOne(context.TODO(), repr)
+		if err != nil {
+			panic(err)
+		}
+		result = repr
+		toCreate = true
+	}
+	if toCreate {
+		// CREATE TABLE...
+		err := GenerateSQLAndApply(result, channel, false)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		// that means the document was found, which implies that we
+		// should verify whether we should update fields or not
+		toUpdate := map[string]string{}
+		for key, value := range repr {
+			if _, ok := result[key]; !ok {
+				toUpdate[key] = value
+			}
+		}
+		if len(toUpdate) > 0 {
+			// ALTER TABLE...
+			err := GenerateSQLAndApply(toUpdate, channel, true)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
 	return nil
 }
