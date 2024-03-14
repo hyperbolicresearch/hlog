@@ -179,6 +179,14 @@ func (i *IngesterWorker) Consume() error {
 	return nil
 }
 
+// Commit will turn commit the current offset in kafka
+func (i *IngesterWorker) Commit() error {
+	// 1. commit to current offset in kafka
+	// 2. log about batch processing completion
+	i.Consumer.Commit()
+	return nil
+}
+
 // Transform will flatten the message to the appropriate format
 // that will be stored to ClickHouse, add metadata.
 func (i *IngesterWorker) Transform() error {
@@ -288,13 +296,6 @@ func (i *IngesterWorker) ExtractSchemas() error {
 		}
 		i.processFields(channel, chFields)
 	}
-	return nil
-}
-
-// Commit will turn commit the current offset in kafka
-func (i *IngesterWorker) Commit() error {
-	// 1. commit to current offset in kafka
-	// 2. log about batch processing completion
 	return nil
 }
 
