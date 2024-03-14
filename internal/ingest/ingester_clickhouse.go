@@ -51,6 +51,8 @@ type IngesterWorker struct {
 	MaxBatchableWait time.Duration
 }
 
+// Messages is the data structure holding the messages that will be
+// written to ClickHouse.
 type Messages struct {
 	sync.RWMutex
 	Data            []*core.Log
@@ -96,7 +98,6 @@ func NewIngesterWorker() *IngesterWorker {
 		MaxBatchableSize: 1000,
 		MaxBatchableWait: time.Duration(5) * time.Second,
 	}
-
 	return _i
 }
 
@@ -136,7 +137,6 @@ func (i *IngesterWorker) Stop() error {
 	i.Lock()
 	defer i.Unlock()
 	i.IsRunning = false
-
 	return nil
 }
 
@@ -173,7 +173,6 @@ func (i *IngesterWorker) Consume() error {
 	// Sink)
 	<-i.CanCommit
 	i.Commit()
-
 	return nil
 }
 
@@ -219,7 +218,6 @@ func (i *IngesterWorker) Transform() error {
 		i.Messages.TransformedData = append(i.Messages.TransformedData, t)
 		i.Messages.Unlock()
 	}
-
 	return nil
 }
 
@@ -234,7 +232,6 @@ func (i *IngesterWorker) ExtractSchemas() error {
 	// we only store metadata adn field arrays. fields are only
 	// materialized when needed (in the future)
 	storableData := GetStorableData(data)
-
 	// group messages by channel
 	dataByChannel := GetDataByChannel(storableData)
 
@@ -267,9 +264,6 @@ func (i *IngesterWorker) ExtractSchemas() error {
 			vars[j] = reflect.New(columnTypes[j].ScanType()).Interface()
 		}
 
-		// We will populate this with the pairs (column_name, column_type)
-		// for further processing.
-
 		var chFields []string
 		for rows.Next() {
 			if err := rows.Scan(vars...); err != nil {
@@ -285,10 +279,8 @@ func (i *IngesterWorker) ExtractSchemas() error {
 				}
 			}
 		}
-		// process the fields that we extracted
 		i.processFields(channel, chFields)
 	}
-
 	return nil
 }
 
@@ -303,6 +295,8 @@ func (i *IngesterWorker) Commit() error {
 // and produce an intermediate representation with it that will later be used
 // in the batching steps to define how to create or alter tables before sinking
 func (i *IngesterWorker) processFields(channel string, chFields []string) error {
+	// we create a map-representation of the channel fields (chFields)
+	// in the form: {...field_name, ...field_type}
 	repr := map[string]string{}
 	for j := 0; j <= len(chFields)-2; j += 2 {
 		key := chFields[j]
@@ -311,9 +305,9 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 	}
 
 	i.RLock()
-	col := i.MongoDatabase.Collection("_sqlschema")
+	col := i.MongoDatabase.Collection("_sqlschemas")
 	i.RUnlock()
-	filter := bson.D{}
+	filter := bson.D{{"channel", "channel"}}
 	var result map[string]string
 	var toCreate bool = false
 	err := col.FindOne(context.TODO(), filter).Decode(&result)
@@ -329,7 +323,7 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 		toCreate = true
 	}
 	if toCreate {
-		// CREATE TABLE ...
+		// CREATE TABLE...
 		err := GenerateSQLAndApply(result, channel, false)
 		if err != nil {
 			panic(err)
@@ -344,7 +338,7 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 			}
 		}
 		if len(toUpdate) > 0 {
-			// ALTER TABLE ...
+			// ALTER TABLE...
 			err := GenerateSQLAndApply(toUpdate, channel, true)
 			if err != nil {
 				panic(err)

@@ -9,24 +9,23 @@ import (
 )
 
 func TestSink(t *testing.T) {
-	// 0. data and schema given.
 	schema := `
 		CREATE TABLE IF NOT EXISTS test_sink (
 			foo String,
-			bar Int64,
+			bar Int8,
 		)
 	`
 	data := []map[string]interface{}{
-		{"foo": "lorem", "bar": 1},
-		{"foo": "ipsum", "bar": 2},
-		{"foo": "dolor", "bar": 3},
+		{"foo": "lorem", "bar": int8(1)},
+		{"foo": "ipsum", "bar": int8(2)},
+		{"foo": "dolor", "bar": int8(3)},
 	}
 	test := struct {
 		name   string
 		input  []map[string]interface{}
 		expect int
 	}{
-		"Insertion of map",
+		"Insertion of maps",
 		data,
 		len(data),
 	}
@@ -64,7 +63,13 @@ func TestSink(t *testing.T) {
 				exception.StackTrace)
 		}
 	}
-	conn.Exec()
+	err = conn.Exec(context.Background(), schema)
+	if err != nil {
+		t.Error(err)
+	}
+	defer func() {
+		conn.Exec(context.Background(), "DROP TABLE IF EXISTS test_table")
+	}()
 	// batcher: initialializing
 	batcher := BatcherWorker{}
 	t.Run(test.name, func(t *testing.T) {
