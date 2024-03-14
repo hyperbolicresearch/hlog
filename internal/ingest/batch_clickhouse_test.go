@@ -71,7 +71,9 @@ func TestSink(t *testing.T) {
 		conn.Exec(context.Background(), "DROP TABLE IF EXISTS test_table")
 	}()
 	// batcher: initialializing
-	batcher := BatcherWorker{}
+	batcher := BatcherWorker{
+		Conn: conn,
+	}
 	t.Run(test.name, func(t *testing.T) {
 		ch := make(chan struct{})
 		count, err := batcher.Sink(test.input, ch)

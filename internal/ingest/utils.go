@@ -3,6 +3,7 @@ package ingest
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	clickhouse_connector "github.com/hyperbolicresearch/hlog/internal/clickhouse"
@@ -78,4 +79,18 @@ func GenerateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 	}
 
 	return nil
+}
+
+// SortMap takes a map and returns a sorted version of it.
+func SortMap(m map[string]interface{}) (map[string]interface{}, error) {
+	sortedMap := make(map[string]interface{})
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, item := range keys {
+		sortedMap[item] = m[item]
+	}
+	return sortedMap, nil
 }

@@ -39,7 +39,9 @@ func (b *BatcherWorker) Sink(data []map[string]interface{}, endC chan struct{}) 
 			if err != nil {
 				log.Printf("Error inserting item: %v into %v. Error=%v", it, channel, err)
 			} else {
+				b.Lock()
 				b.IterCount += 1
+				b.Unlock()
 				count += 1
 			}
 		}

@@ -214,8 +214,12 @@ func (i *IngesterWorker) Transform() error {
 				t["float64.values"] = append(t["float64.values"].([]float64), v.(float64))
 			}
 		}
+		sortedT, err := SortMap(t)
+		if err != nil {
+			return err
+		}
 		i.Messages.Lock()
-		i.Messages.TransformedData = append(i.Messages.TransformedData, t)
+		i.Messages.TransformedData = append(i.Messages.TransformedData, sortedT)
 		i.Messages.Unlock()
 	}
 	return nil
