@@ -166,12 +166,15 @@ func (i *IngesterWorker) Consume() error {
 	// sink of the buffered data to ClickHouse.
 	_ = i.Transform()
 	_ = i.ExtractSchemas()
-	go i.Sink(i.Messages.TransformedData, i.CanCommit)
+	_, err := i.Sink(i.Messages.TransformedData)
+	if err != nil {
+		panic(err)
+	}
 
 	// Waiting until we have the acks that we successfully sink
 	// the data to ClickHouse (which should be sent from inside
 	// Sink)
-	<-i.CanCommit
+	// <-i.CanCommit
 	i.Commit()
 	return nil
 }
@@ -214,7 +217,7 @@ func (i *IngesterWorker) Transform() error {
 				t["float64.values"] = append(t["float64.values"].([]float64), v.(float64))
 			}
 		}
-		sortedT, err := SortMap(t)
+		sortedT, _, err := SortMap(t)
 		if err != nil {
 			return err
 		}
@@ -349,6 +352,5 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 			}
 		}
 	}
-
 	return nil
 }

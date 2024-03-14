@@ -24,7 +24,7 @@ type BatcherWorker struct {
 // Sync will receive a slice of data ready to be added to ClickHouse
 // and will proceed to the dumping of those data in an efficient
 // manner, givent the shape of the data.
-func (b *BatcherWorker) Sink(data []map[string]interface{}, endC chan struct{}) (count int, err error) {
+func (b *BatcherWorker) Sink(data []map[string]interface{}) (count int, err error) {
 	dataByChannel := GetDataByChannel(data)
 	count = 0
 	for channel, item := range dataByChannel {
@@ -34,10 +34,15 @@ func (b *BatcherWorker) Sink(data []map[string]interface{}, endC chan struct{}) 
 			return count, err
 		}
 		for i := 0; i < len(item); i++ {
-			it := []any{item}
-			err := batch.Append(it...)
+			// We got the map[string]interface{}, we will now extract the slice of
+			// values ([]interface{}) to append
+			_, sortedValues, err := SortMap(item[i])
 			if err != nil {
-				log.Printf("Error inserting item: %v into %v. Error=%v", it, channel, err)
+				panic(err)
+			}
+			err = batch.Append(sortedValues...)
+			if err != nil {
+				log.Printf("Error inserting item: %v into %v. Error=%v", sortedValues, channel, err)
 			} else {
 				b.Lock()
 				b.IterCount += 1
@@ -46,6 +51,5 @@ func (b *BatcherWorker) Sink(data []map[string]interface{}, endC chan struct{}) 
 			}
 		}
 	}
-	endC <- struct{}{}
 	return count, nil
 }

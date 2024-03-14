@@ -9,16 +9,10 @@ import (
 )
 
 func TestSink(t *testing.T) {
-	schema := `
-		CREATE TABLE IF NOT EXISTS test_sink (
-			foo String,
-			bar Int8,
-		)
-	`
 	data := []map[string]interface{}{
-		{"foo": "lorem", "bar": int8(1)},
-		{"foo": "ipsum", "bar": int8(2)},
-		{"foo": "dolor", "bar": int8(3)},
+		{"foo": "lorem", "bar": int8(1), "_channel": "test_sink"},
+		{"foo": "ipsum", "bar": int8(2), "_channel": "test_sink"},
+		{"foo": "dolor", "bar": int8(3), "_channel": "test_sink"},
 	}
 	test := struct {
 		name   string
@@ -63,6 +57,19 @@ func TestSink(t *testing.T) {
 				exception.StackTrace)
 		}
 	}
+	err = conn.Exec(context.Background(), "DROP TABLE IF EXISTS test_sink")
+	if err != nil {
+		t.Error(err)
+	}
+	schema := `
+		CREATE TABLE IF NOT EXISTS test_sink (
+			_channel String,
+			bar Int8 PRIMARY KEY,
+			foo String,
+		)
+		ENGINE = MergeTree
+		ORDER BY bar
+	`
 	err = conn.Exec(context.Background(), schema)
 	if err != nil {
 		t.Error(err)
@@ -75,8 +82,7 @@ func TestSink(t *testing.T) {
 		Conn: conn,
 	}
 	t.Run(test.name, func(t *testing.T) {
-		ch := make(chan struct{})
-		count, err := batcher.Sink(test.input, ch)
+		count, err := batcher.Sink(test.input)
 		if err != nil {
 			t.Errorf("error sinking the data: %v", err)
 		}

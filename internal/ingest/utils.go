@@ -82,15 +82,18 @@ func GenerateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 }
 
 // SortMap takes a map and returns a sorted version of it.
-func SortMap(m map[string]interface{}) (map[string]interface{}, error) {
+func SortMap(m map[string]interface{}) (map[string]interface{}, []interface{}, error) {
 	sortedMap := make(map[string]interface{})
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
+	sortedValues := []interface{}{}
 	for _, item := range keys {
 		sortedMap[item] = m[item]
+		sortedValues = append(sortedValues, m[item])
+		
 	}
-	return sortedMap, nil
+	return sortedMap, sortedValues, nil
 }
