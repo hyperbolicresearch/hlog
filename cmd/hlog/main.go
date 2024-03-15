@@ -3,13 +3,13 @@ package main
 import (
 	"log"
 	"os"
-	"strings"
-	"time"
+	"os/signal"
+	"syscall"
 
 	"github.com/joho/godotenv"
 
+	"github.com/hyperbolicresearch/hlog/config"
 	"github.com/hyperbolicresearch/hlog/internal/ingest"
-	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
 )
 
 func init() {
@@ -21,29 +21,21 @@ func init() {
 func main() {
 	log.Println("Hlog engine started...")
 
-	channels := os.Getenv("CHANNELS")
-	clientId := os.Getenv("CLIENT_ID")
-	kafkaServer := os.Getenv("KAFKA_SERVER")
-	topics := strings.Split(channels, ",")
-	mongodbUri := os.Getenv("MONGODB_URI")
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	stop := make(chan struct{}, 1)
-
-	mongodbConfigs := ingest.MongoDBIngesterConfig{
-		KafkaConfigs: kafka_service.KafkaConfigs{
-			Server:          kafkaServer,
-			GroupId:         clientId,
-			AutoOffsetReset: "earliest",
-			EnableAutoCommit: true,
-		},
-		KafkaTopics:     topics,
-		ConsumeInterval: time.Duration(100) * time.Millisecond,
-		MongoServer:     mongodbUri,
-		TopicCallback:   "hyperclusters-1415-livetail",
-		Database:        clientId,
+	// We load the configurations by reading the config.yaml, otherwise
+	// (if it fails to load), we load the default configurations.
+	cfg, err := config.FromYAML("config.yaml")
+	if err != nil {
+		cfg = &config.DefaultConfig
 	}
-	MDBIngester := ingest.NewMongoDBIngester(&mongodbConfigs)
-	go MDBIngester.Start()
 
-	<-stop
+	// We then start the ingesting processes in MongoDB and in ClickHouse.
+	// mongodbIngester := ingest.NewMongoDBIngester(cfg)
+	// go mongodbIngester.Start(sigchan)
+	clickhouseIngester := ingest.NewClickHouseIngester(cfg)
+	go clickhouseIngester.Start(sigchan)
+
+	<-sigchan
 }

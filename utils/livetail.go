@@ -8,13 +8,14 @@ import (
 	"time"
 
 	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
+	"github.com/hyperbolicresearch/hlog/config"
 )
 
 func LiveTail() {
 	topics := []string{"hyperclusters-1415-livetail"}
 	kafkaServer := os.Getenv("KAFKA_SERVER")
 
-	kafkaConfigs := kafka_service.KafkaConfigs{
+	kafkaConfigs := config.Kafka{
 		Server:          kafkaServer,
 		GroupId:         "experimental-livetail",
 		AutoOffsetReset: "earliest",

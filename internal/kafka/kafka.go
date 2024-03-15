@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/hyperbolicresearch/hlog/config"
 )
 
 type PubSubWorker interface {
@@ -18,7 +19,7 @@ type KafkaWorker struct {
 	sync.RWMutex
 	*kafka.Consumer
 	*kafka.Producer
-	Configs    *KafkaConfigs
+	Configs    *config.Kafka
 	IsConsumer bool
 	IsProducer bool
 }
@@ -32,9 +33,9 @@ type KafkaConfigs struct {
 
 // NewKafkaWorker creates a new KafkaWorker and returns it
 // with an error message.
-func NewKafkaWorker(configs *KafkaConfigs) (*KafkaWorker, error) {
+func NewKafkaWorker(cfg *config.Kafka) (*KafkaWorker, error) {
 	w := &KafkaWorker{
-		Configs: configs,
+		Configs: cfg,
 	}
 	return w, nil
 }
