@@ -5,16 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/signal"
 	"reflect"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
+	"github.com/hyperbolicresearch/hlog/config"
 	clickhouse_connector "github.com/hyperbolicresearch/hlog/internal/clickhouse"
 	"github.com/hyperbolicresearch/hlog/internal/core"
 	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
@@ -33,10 +32,6 @@ type IngesterWorker struct {
 	// BufferSchemas stores the different schemas (one schema per channel)
 	//from the buffered messages.
 	BufferSchemas map[string][]interface{}
-	// CanCommit is a way for us to make sure that we have successfully
-	// sink the buffered messages to ClickHouse, and that we can commit
-	// to Kafka. This guarantess At-Least-Once delivery.
-	CanCommit chan struct{}
 	// ConsumeInterval is the periodic interval to consume messages
 	// from kafka.
 	ConsumeInterval time.Duration
@@ -60,18 +55,8 @@ type Messages struct {
 }
 
 // TODO: make configs
-func NewIngesterWorker() *IngesterWorker {
-	channels := "mainnet,testnet,subnet,intranet,darknet"
-	topics := strings.Split(channels, ",")
-	groupId := "hyperclusters-1415"
-	kafkaServer := "0.0.0.0:65007"
-	kConfigs := kafka_service.KafkaConfigs{
-		Server:           kafkaServer,
-		GroupId:          groupId,
-		EnableAutoCommit: false,
-		AutoOffsetReset:  "earliest",
-	}
-	kw, err := kafka_service.NewKafkaWorker(&kConfigs)
+func NewClickHouseIngester(cfg *config.Config) *IngesterWorker {
+	kw, err := kafka_service.NewKafkaWorker(cfg.Kafka)
 	if err != nil {
 		panic("failed to create ingester")
 	}
@@ -79,12 +64,12 @@ func NewIngesterWorker() *IngesterWorker {
 	if err != nil {
 		panic(err)
 	}
-	err = kw.SubscribeTopics(topics)
+	err = kw.SubscribeTopics(cfg.ClickHouse.KafkaTopics)
 	if err != nil {
 		panic(err)
 	}
-	mongoClient := mongodb.Client("mongodb://localhost:27017/")
-	db := mongoClient.Database("hyperclusters-1415")
+	mongoClient := mongodb.Client(cfg.MongoDB.Server)
+	db := mongoClient.Database(cfg.MongoDB.Database)
 
 	_i := &IngesterWorker{
 		MongoDatabase:    db,
@@ -92,18 +77,17 @@ func NewIngesterWorker() *IngesterWorker {
 		Messages:         &Messages{},
 		BufferSchemas:    make(map[string][]interface{}),
 		KafkaWorker:      kw,
-		CanCommit:        make(chan struct{}, 1),
-		ConsumeInterval:  time.Duration(10) * time.Second,
-		MinBatchableSize: 1,
-		MaxBatchableSize: 1000,
-		MaxBatchableWait: time.Duration(5) * time.Second,
+		ConsumeInterval:  cfg.ClickHouse.ConsumeInterval,
+		MinBatchableSize: cfg.ClickHouse.MinBatchableSize,
+		MaxBatchableSize: cfg.ClickHouse.MaxBatchableSize,
+		MaxBatchableWait: cfg.ClickHouse.MaxBatchableWait,
 	}
 	return _i
 }
 
 // Start spins up the consuming process generally speaking. It runs as
 // long as i.IsRunning is true and tracks new incomming logs
-func (i *IngesterWorker) Start() {
+func (i *IngesterWorker) Start(stop chan os.Signal) {
 	// TODO: Should I really panic here?
 	i.RLock()
 	if i.IsRunning {
@@ -115,14 +99,11 @@ func (i *IngesterWorker) Start() {
 	i.IsRunning = true
 	i.Unlock()
 
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
 	consumeTicker := time.NewTicker(i.ConsumeInterval)
 
 	for i.IsRunning {
 		select {
-		case <-sigchan:
+		case <-stop:
 			i.Stop()
 		case <-consumeTicker.C:
 			go i.Consume()
@@ -174,7 +155,6 @@ func (i *IngesterWorker) Consume() error {
 	// Waiting until we have the acks that we successfully sink
 	// the data to ClickHouse (which should be sent from inside
 	// Sink)
-	// <-i.CanCommit
 	i.Commit()
 	return nil
 }

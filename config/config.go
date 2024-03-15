@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -35,10 +36,16 @@ type MongoDB struct {
 // ClickHouse holds the configuration for ClickHouse
 type ClickHouse struct {
 	*clickhouse.Options
+
+	KafkaConfigs Kafka
+	KafkaTopics []string
+	ConsumeInterval time.Duration
+	MinBatchableSize int
+	MaxBatchableSize int
+	MaxBatchableWait time.Duration
 }
 
 // FromYAML reads configs.yaml and extracts the configurations
 func FromYAML(filename string) (*Config, error) {
-	c := Config{}
-	return &c, nil
+	return nil, fmt.Errorf("config file %v not found", filename)
 }

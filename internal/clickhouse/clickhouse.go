@@ -23,9 +23,9 @@ func Conn(addrs []string) (driver.Conn, error) {
 	}
 	if err := conn.Ping(ctx); err != nil {
 		if exception, ok := err.(*clickhouse.Exception); ok {
-			fmt.Printf("Exception [%d] %s \n%s\n", 
-				exception.Code, 
-				exception.Message, 
+			fmt.Printf("Exception [%d] %s \n%s\n",
+				exception.Code,
+				exception.Message,
 				exception.StackTrace)
 		}
 		return nil, err

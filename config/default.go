@@ -42,5 +42,11 @@ var (
 				Database: "default",
 			},
 		},
+		KafkaConfigs:     DefaultKafkaConfig,
+		KafkaTopics:      []string{"default"},
+		ConsumeInterval:  time.Duration(100) * time.Millisecond,
+		MinBatchableSize: 1,
+		MaxBatchableSize: 1000,
+		MaxBatchableWait: time.Duration(30) * time.Second,
 	}
 )

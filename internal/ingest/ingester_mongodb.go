@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"go.mongodb.org/mongo-driver/mongo"
 
+	"github.com/hyperbolicresearch/hlog/config"
 	"github.com/hyperbolicresearch/hlog/internal/core"
 	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
 	"github.com/hyperbolicresearch/hlog/internal/mongodb"
@@ -37,11 +39,11 @@ type MongoDBIngesterConfig struct {
 	Database      string
 }
 
-func NewMongoDBIngester(configs *MongoDBIngesterConfig) *MongoDBIngester {
-	mongoClient := mongodb.Client(configs.MongoServer)
-	db := mongoClient.Database(configs.Database)
+func NewMongoDBIngester(cfg *config.Config) *MongoDBIngester {
+	mongoClient := mongodb.Client(cfg.MongoDB.Server)
+	db := mongoClient.Database(cfg.Database)
 
-	kw, err := kafka_service.NewKafkaWorker(&configs.KafkaConfigs)
+	kw, err := kafka_service.NewKafkaWorker(cfg.Kafka)
 	if err != nil {
 		panic(err)
 	}
@@ -49,15 +51,15 @@ func NewMongoDBIngester(configs *MongoDBIngesterConfig) *MongoDBIngester {
 	if err != nil {
 		panic(err)
 	}
-	err = kw.SubscribeTopics(configs.KafkaTopics)
+	err = kw.SubscribeTopics(cfg.MongoDB.KafkaTopics)
 	if err != nil {
 		panic(err)
 	}
 	m := &MongoDBIngester{
-		ConsumeInterval: configs.ConsumeInterval,
+		ConsumeInterval: cfg.MongoDB.ConsumeInterval,
 		Database:        db,
 		KafkaWorker:     kw,
-		TopicCallback:   configs.TopicCallback,
+		TopicCallback:   cfg.MongoDB.TopicCallback,
 		CloseChan:       make(chan struct{}, 1),
 	}
 	return m
@@ -65,7 +67,7 @@ func NewMongoDBIngester(configs *MongoDBIngesterConfig) *MongoDBIngester {
 
 // Start spins up everything and starts listening for incoming
 // events from Kafka, and gets ready to sink them to the database.
-func (m *MongoDBIngester) Start() {
+func (m *MongoDBIngester) Start(stop chan os.Signal) {
 	m.RLock()
 	kw := m.KafkaWorker
 	m.RUnlock()

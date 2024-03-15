@@ -1,15 +1,18 @@
 package ingest
 
 import (
+	"os"
 	"reflect"
 	"testing"
 
+	"github.com/hyperbolicresearch/hlog/config"
 	"github.com/hyperbolicresearch/hlog/internal/core"
 )
 
 func TestGracefulStop(t *testing.T) {
-	ingester := NewIngesterWorker()
-	go ingester.Start()
+	stop := make(chan os.Signal)
+	ingester := NewClickHouseIngester(&config.DefaultConfig)
+	go ingester.Start(stop)
 	_ = ingester.Stop()
 	ingester.RLock()
 	isRunning := ingester.IsRunning
@@ -57,7 +60,7 @@ func TestTransform(t *testing.T) {
 		},
 	}
 
-	ingester := NewIngesterWorker()
+	ingester := NewClickHouseIngester(&config.DefaultConfig)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -79,11 +82,11 @@ func TestTransform(t *testing.T) {
 }
 
 func TestExtractSchemas(t *testing.T) {
-	ingester := NewIngesterWorker()
+	ingester := NewClickHouseIngester(&config.DefaultConfig)
 	err := ingester.ExtractSchemas()
 
 	if err != nil {
 		t.Error(err)
 		t.Fail()
-	}	
+	}
 }
