@@ -315,7 +315,7 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 	i.RLock()
 	col := i.MongoDatabase.Collection("_sqlschemas")
 	i.RUnlock()
-	filter := bson.D{{"channel", "channel"}}
+	filter := bson.D{{"channel", channel}}
 	var result map[string]string
 	var toCreate bool = false
 	err := col.FindOne(context.TODO(), filter).Decode(&result)
