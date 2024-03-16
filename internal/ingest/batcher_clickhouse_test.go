@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	clickhouse_connector "github.com/hyperbolicresearch/hlog/internal/clickhouse"
+	"github.com/hyperbolicresearch/hlog/internal/clickhouseservice"
 )
 
 func TestSink(t *testing.T) {
@@ -26,7 +26,7 @@ func TestSink(t *testing.T) {
 
 	// clickhouse: create test_sink db
 	addr := []string{"localhost:9000"}
-	defaultConn, err := clickhouse_connector.Conn(addr)
+	defaultConn, err := clickhouseservice.Conn(addr)
 	if err != nil {
 		t.Errorf("Error while connecting to the default db: %v", err)
 	}

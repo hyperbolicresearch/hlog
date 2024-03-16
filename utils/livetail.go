@@ -11,12 +11,12 @@ import (
 
 	"github.com/hyperbolicresearch/hlog/config"
 	"github.com/hyperbolicresearch/hlog/internal/core"
-	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
+	"github.com/hyperbolicresearch/hlog/internal/kafkaservice"
 	"github.com/hyperbolicresearch/hlog/pkg/logger"
 )
 
 func LiveTail(config *config.Livetail) {
-	kw, err := kafka_service.NewKafkaWorker(&config.KafkaConfigs)
+	kw, err := kafkaservice.NewKafkaWorker(&config.KafkaConfigs)
 	if err != nil {
 		panic(err)
 	}

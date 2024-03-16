@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	clickhouse_connector "github.com/hyperbolicresearch/hlog/internal/clickhouse"
+	"github.com/hyperbolicresearch/hlog/internal/clickhouseservice"
 )
 
 // GetStorableData gets a list of transformed messages and return only a list
@@ -69,7 +69,7 @@ func GenerateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 	// _sql += "\nSET allow_nullable_key = true"
 
 	addrs := []string{"127.0.0.1:9000"}
-	chConn, err := clickhouse_connector.Conn(addrs)
+	chConn, err := clickhouseservice.Conn(addrs)
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func SortMap(m map[string]interface{}) (map[string]interface{}, []interface{}, e
 	for _, item := range keys {
 		sortedMap[item] = m[item]
 		sortedValues = append(sortedValues, m[item])
-		
+
 	}
 	return sortedMap, sortedValues, nil
 }

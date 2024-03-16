@@ -14,14 +14,14 @@ import (
 
 	"github.com/hyperbolicresearch/hlog/config"
 	"github.com/hyperbolicresearch/hlog/internal/core"
-	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
+	"github.com/hyperbolicresearch/hlog/internal/kafkaservice"
 	"github.com/hyperbolicresearch/hlog/internal/mongodb"
 )
 
 type MongoDBIngester struct {
 	sync.RWMutex
 	*mongo.Database
-	*kafka_service.KafkaWorker
+	*kafkaservice.KafkaWorker
 	ConsumeInterval time.Duration
 	// TopicCallback is the Kafka topic to produce to upon successful insertion.
 	TopicCallback string
@@ -30,7 +30,7 @@ type MongoDBIngester struct {
 
 type MongoDBIngesterConfig struct {
 	// Kafka-related configurations
-	KafkaConfigs    kafka_service.KafkaConfigs
+	KafkaConfigs    kafkaservice.KafkaConfigs
 	KafkaTopics     []string
 	ConsumeInterval time.Duration
 	// MongoDB-related configurations
@@ -43,7 +43,7 @@ func NewMongoDBIngester(cfg *config.Config) *MongoDBIngester {
 	mongoClient := mongodb.Client(cfg.MongoDB.Server)
 	db := mongoClient.Database(cfg.Database)
 
-	kw, err := kafka_service.NewKafkaWorker(cfg.Kafka)
+	kw, err := kafkaservice.NewKafkaWorker(cfg.Kafka)
 	if err != nil {
 		panic(err)
 	}

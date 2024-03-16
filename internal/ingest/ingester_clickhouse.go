@@ -14,9 +14,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/hyperbolicresearch/hlog/config"
-	clickhouse_connector "github.com/hyperbolicresearch/hlog/internal/clickhouse"
+	"github.com/hyperbolicresearch/hlog/internal/clickhouseservice"
 	"github.com/hyperbolicresearch/hlog/internal/core"
-	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
+	"github.com/hyperbolicresearch/hlog/internal/kafkaservice"
 	"github.com/hyperbolicresearch/hlog/internal/mongodb"
 )
 
@@ -25,7 +25,7 @@ import (
 type IngesterWorker struct {
 	sync.RWMutex
 	*BatcherWorker
-	*kafka_service.KafkaWorker
+	*kafkaservice.KafkaWorker
 	MongoDatabase *mongo.Database
 	IsRunning     bool
 	Messages      *Messages
@@ -56,7 +56,7 @@ type Messages struct {
 
 // TODO: make configs
 func NewClickHouseIngester(cfg *config.Config) *IngesterWorker {
-	kw, err := kafka_service.NewKafkaWorker(cfg.Kafka)
+	kw, err := kafkaservice.NewKafkaWorker(cfg.Kafka)
 	if err != nil {
 		panic("failed to create ingester")
 	}
@@ -232,7 +232,7 @@ func (i *IngesterWorker) ExtractSchemas() error {
 
 	// TODO Make config
 	addrs := []string{"localhost:9000"}
-	chConn, err := clickhouse_connector.Conn(addrs)
+	chConn, err := clickhouseservice.Conn(addrs)
 	if err != nil {
 		return err
 	}
