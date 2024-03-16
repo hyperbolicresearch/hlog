@@ -14,9 +14,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/hyperbolicresearch/hlog/config"
-	clickhouse_connector "github.com/hyperbolicresearch/hlog/internal/clickhouse"
+	"github.com/hyperbolicresearch/hlog/internal/clickhouseservice"
 	"github.com/hyperbolicresearch/hlog/internal/core"
-	kafka_service "github.com/hyperbolicresearch/hlog/internal/kafka"
+	"github.com/hyperbolicresearch/hlog/internal/kafkaservice"
 	"github.com/hyperbolicresearch/hlog/internal/mongodb"
 )
 
@@ -25,7 +25,7 @@ import (
 type IngesterWorker struct {
 	sync.RWMutex
 	*BatcherWorker
-	*kafka_service.KafkaWorker
+	*kafkaservice.KafkaWorker
 	MongoDatabase *mongo.Database
 	IsRunning     bool
 	Messages      *Messages
@@ -52,11 +52,12 @@ type Messages struct {
 	sync.RWMutex
 	Data            []*core.Log
 	TransformedData []map[string]interface{}
+	StorableData    []map[string]interface{}
 }
 
 // TODO: make configs
 func NewClickHouseIngester(cfg *config.Config) *IngesterWorker {
-	kw, err := kafka_service.NewKafkaWorker(cfg.Kafka)
+	kw, err := kafkaservice.NewKafkaWorker(&cfg.ClickHouse.KafkaConfigs)
 	if err != nil {
 		panic("failed to create ingester")
 	}
@@ -71,9 +72,18 @@ func NewClickHouseIngester(cfg *config.Config) *IngesterWorker {
 	mongoClient := mongodb.Client(cfg.MongoDB.Server)
 	db := mongoClient.Database(cfg.MongoDB.Database)
 
+	// TODO make configurable
+	addrs := []string{"127.0.0.1:9000"}
+	chConn, err := clickhouseservice.Conn(addrs)
+	if err != nil {
+		panic(err)
+	}
+
 	_i := &IngesterWorker{
-		MongoDatabase:    db,
-		BatcherWorker:    &BatcherWorker{},
+		MongoDatabase: db,
+		BatcherWorker: &BatcherWorker{
+			Conn: chConn,
+		},
 		Messages:         &Messages{},
 		BufferSchemas:    make(map[string][]interface{}),
 		KafkaWorker:      kw,
@@ -147,7 +157,7 @@ func (i *IngesterWorker) Consume() error {
 	// sink of the buffered data to ClickHouse.
 	_ = i.Transform()
 	_ = i.ExtractSchemas()
-	_, err := i.Sink(i.Messages.TransformedData)
+	_, err := i.Sink(i.Messages.StorableData)
 	if err != nil {
 		panic(err)
 	}
@@ -205,7 +215,7 @@ func (i *IngesterWorker) Transform() error {
 				t["float64.values"] = append(t["float64.values"].([]float64), v.(float64))
 			}
 		}
-		sortedT, _, err := SortMap(t)
+		sortedT, _, _, err := SortMap(t)
 		if err != nil {
 			return err
 		}
@@ -222,17 +232,19 @@ func (i *IngesterWorker) ExtractSchemas() error {
 	i.Messages.RLock()
 	data := i.Messages.TransformedData
 	i.Messages.RUnlock()
-
 	// get the part from messages that we are saving in the db
 	// we only store metadata adn field arrays. fields are only
 	// materialized when needed (in the future)
 	storableData := GetStorableData(data)
+	i.Messages.Lock()
+	i.Messages.StorableData = append(i.Messages.StorableData, storableData...)
+	i.Messages.Unlock()
 	// group messages by channel
 	dataByChannel := GetDataByChannel(storableData)
 
 	// TODO Make config
 	addrs := []string{"localhost:9000"}
-	chConn, err := clickhouse_connector.Conn(addrs)
+	chConn, err := clickhouseservice.Conn(addrs)
 	if err != nil {
 		return err
 	}
@@ -250,7 +262,6 @@ func (i *IngesterWorker) ExtractSchemas() error {
 		if err != nil {
 			return fmt.Errorf("error describing data: %v", err)
 		}
-
 		var (
 			columnTypes = rows.ColumnTypes()
 			vars        = make([]interface{}, len(columnTypes))
@@ -258,7 +269,6 @@ func (i *IngesterWorker) ExtractSchemas() error {
 		for j := range columnTypes {
 			vars[j] = reflect.New(columnTypes[j].ScanType()).Interface()
 		}
-
 		var chFields []string
 		for rows.Next() {
 			if err := rows.Scan(vars...); err != nil {
@@ -285,7 +295,7 @@ func (i *IngesterWorker) ExtractSchemas() error {
 func (i *IngesterWorker) processFields(channel string, chFields []string) error {
 	// we create a map-representation of the channel fields (chFields)
 	// in the form: {...field_name, ...field_type}
-	repr := map[string]string{}
+	repr := map[string]interface{}{}
 	for j := 0; j <= len(chFields)-2; j += 2 {
 		key := chFields[j]
 		value := chFields[j+1]
@@ -296,7 +306,7 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 	col := i.MongoDatabase.Collection("_sqlschemas")
 	i.RUnlock()
 	filter := bson.D{{"channel", channel}}
-	var result map[string]string
+	var result map[string]interface{}
 	var toCreate bool = false
 	err := col.FindOne(context.TODO(), filter).Decode(&result)
 	if err != nil {
@@ -319,7 +329,7 @@ func (i *IngesterWorker) processFields(channel string, chFields []string) error 
 	} else {
 		// that means the document was found, which implies that we
 		// should verify whether we should update fields or not
-		toUpdate := map[string]string{}
+		toUpdate := map[string]interface{}{}
 		for key, value := range repr {
 			if _, ok := result[key]; !ok {
 				toUpdate[key] = value

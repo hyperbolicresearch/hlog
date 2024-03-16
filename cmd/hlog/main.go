@@ -35,7 +35,5 @@ func main() {
 	// mongodbIngester := ingest.NewMongoDBIngester(cfg)
 	// go mongodbIngester.Start(sigchan)
 	clickhouseIngester := ingest.NewClickHouseIngester(cfg)
-	go clickhouseIngester.Start(sigchan)
-
-	<-sigchan
+	clickhouseIngester.Start(sigchan)
 }

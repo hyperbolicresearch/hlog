@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/hyperbolicresearch/hlog/pkg/logger"
 )
 
 var (
@@ -13,6 +14,8 @@ var (
 		Kafka:      &DefaultKafkaConfig,
 		MongoDB:    &DefaultMongoDBConfig,
 		ClickHouse: &DefaultClickHouseConfig,
+		Livetail:   &DefaultLivetailConfig,
+		Simulator:  &DefaultSimulatorConfig,
 	}
 
 	// DefaultKafkaConfig is the default kafka configuration.
@@ -44,9 +47,32 @@ var (
 		},
 		KafkaConfigs:     DefaultKafkaConfig,
 		KafkaTopics:      []string{"default"},
-		ConsumeInterval:  time.Duration(100) * time.Millisecond,
+		ConsumeInterval:  time.Duration(5) * time.Second,
 		MinBatchableSize: 1,
-		MaxBatchableSize: 1000,
-		MaxBatchableWait: time.Duration(30) * time.Second,
+		MaxBatchableSize: 100,
+		MaxBatchableWait: time.Duration(10) * time.Second,
+	}
+
+	// DefaultLivetailConfig is the default Livetail configuration.
+	DefaultLivetailConfig = Livetail{
+		KafkaTopics: []string{"default"},
+		KafkaConfigs: Kafka{
+			Server:           "0.0.0.0:65007",
+			GroupId:          "hlog-livetail-default",
+			AutoOffsetReset:  "earliest",
+			EnableAutoCommit: true,
+		},
+		ConsumeInterval: time.Duration(100) * time.Millisecond,
+		DefaultLevel:    logger.DEBUG,
+	}
+
+	// DefaultSimulatorConfig is the default Simulator configuration.
+	DefaultSimulatorConfig = Simulator{
+		KafkaTopics: []string{"default"},
+		KafkaConfigs: Kafka{
+			Server: "0.0.0.0:65007",
+		},
+		ProduceInterval: time.Duration(5) * time.Second,
+		MessageLength:   7,
 	}
 )

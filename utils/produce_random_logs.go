@@ -12,19 +12,16 @@ import (
 	"github.com/google/uuid"
 	randomstring "github.com/xyproto/randomstring"
 
+	"github.com/hyperbolicresearch/hlog/config"
 	"github.com/hyperbolicresearch/hlog/internal/core"
 )
 
 // GenerateRandomLogs generates logs every in k seconds
 // in a choice of numTopics topics, simulating how many processes
 // would produce logs in ra real-life scenario.
-func GenerateRandomLogs(stop chan struct{}) {
-	quit := make(chan struct{})
-	ticker := time.NewTicker(time.Second * time.Duration(5))
-
-	// Kafka
+func GenerateRandomLogs(cfg *config.Config, stop chan os.Signal) {
 	kafkaConfigs := kafka.ConfigMap{
-		"bootstrap.servers": os.Getenv("KAFKA_SERVER"),
+		"bootstrap.servers": cfg.Simulator.KafkaConfigs.Server,
 	}
 	producer, err := kafka.NewProducer(&kafkaConfigs)
 	if err != nil {
@@ -46,30 +43,30 @@ func GenerateRandomLogs(stop chan struct{}) {
 		}
 	}()
 
+	ticker := time.NewTicker(time.Second * time.Duration(5))
 	run := true
 	for run {
 		select {
-		case <-quit:
+		case <-stop:
 			ticker.Stop()
-			stop <- struct{}{}
 			run = false
 		case <-ticker.C:
-			go Generate(producer)
+			go Generate(producer, cfg)
 		}
 	}
 }
 
 // Generate generates a new log with random data and produces it
 // to a random topic via the kafka producer provided to it.
-func Generate(kafkaProducer *kafka.Producer) {
+func Generate(kafkaProducer *kafka.Producer, cfg *config.Config) {
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-	index := rnd.Intn(5)
-	channels := os.Getenv("CHANNELS")
-	topics := strings.Split(channels, ",")
+	index := rnd.Intn(len(cfg.Simulator.KafkaTopics))
+	topics := cfg.Simulator.KafkaTopics
 	channel := topics[index]
 
 	id := uuid.New().String()
 
+	index = rnd.Intn(5)
 	senderIds := []string{
 		"client-0001",
 		"client-0002",
@@ -79,8 +76,9 @@ func Generate(kafkaProducer *kafka.Producer) {
 	}
 	senderId := senderIds[index]
 
-	timestamp := time.Now().UnixNano()
+	timestamp := time.Now().Unix()
 
+	index = rnd.Intn(5)
 	levels := []string{
 		"debug",
 		"info",
@@ -90,7 +88,12 @@ func Generate(kafkaProducer *kafka.Producer) {
 	}
 	level := levels[index]
 
-	message := randomstring.HumanFriendlyEnglishString(7)
+	message := ""
+	for i := 0; i < cfg.Simulator.MessageLength; i++ {
+		word := randomstring.HumanFriendlyEnglishString(7) + " "
+		message += word
+	}
+	message = strings.TrimSpace(message)
 
 	data := map[string]interface{}{
 		"foo":   "foo",
@@ -114,7 +117,7 @@ func Generate(kafkaProducer *kafka.Producer) {
 
 	kafkaProducer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{
-			Topic:     &topics[index],
+			Topic:     &channel,
 			Partition: kafka.PartitionAny},
 		Value: []byte(value),
 	}, nil)

@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	clickhouse_connector "github.com/hyperbolicresearch/hlog/internal/clickhouse"
+	"github.com/hyperbolicresearch/hlog/internal/clickhouseservice"
 )
 
 // GetStorableData gets a list of transformed messages and return only a list
@@ -14,7 +14,7 @@ import (
 // on ClickHouse.
 func GetStorableData(raw []map[string]interface{}) []map[string]interface{} {
 	storableData := make([]map[string]interface{}, 0, len(raw))
-	for _, item := range storableData {
+	for _, item := range raw {
 		kv := map[string]interface{}{}
 		for k, v := range item {
 			if strings.HasPrefix(k, "_") || strings.Contains(k, ".") {
@@ -42,9 +42,11 @@ func GetDataByChannel(data []map[string]interface{}) map[string][]map[string]int
 	return dataByChannel
 }
 
+type Values string
+
 // GenerateSQLAndApply generates the SQL query for either creating or altering the
 // Clickhouse schema for a given table and makes the given changes to the database.
-func GenerateSQLAndApply(schema map[string]string, table string, isAlter bool) error {
+func GenerateSQLAndApply(schema map[string]interface{}, table string, isAlter bool) error {
 	var _sql string
 	switch isAlter {
 	case true:
@@ -53,7 +55,13 @@ func GenerateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 		_sql += fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (\n", table)
 	}
 
-	for key, value := range schema {
+	_, keys, _, err := SortMap(schema)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(keys); i++ {
+		key := keys[i]
+		value := schema[key]
 		newLine := fmt.Sprintf("  `%s` %s,\n", key, value)
 		// we will sort by logid, so it should not be nullable. indeed,
 		// all log is required by design to have a logid.
@@ -68,8 +76,9 @@ func GenerateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 	_sql += "\nORDER BY _logid"
 	// _sql += "\nSET allow_nullable_key = true"
 
+	// TODO make configurable
 	addrs := []string{"127.0.0.1:9000"}
-	chConn, err := clickhouse_connector.Conn(addrs)
+	chConn, err := clickhouseservice.Conn(addrs)
 	if err != nil {
 		return err
 	}
@@ -77,12 +86,11 @@ func GenerateSQLAndApply(schema map[string]string, table string, isAlter bool) e
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
 // SortMap takes a map and returns a sorted version of it.
-func SortMap(m map[string]interface{}) (map[string]interface{}, []interface{}, error) {
+func SortMap(m map[string]interface{}) (map[string]interface{}, []string, []interface{}, error) {
 	sortedMap := make(map[string]interface{})
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -93,7 +101,7 @@ func SortMap(m map[string]interface{}) (map[string]interface{}, []interface{}, e
 	for _, item := range keys {
 		sortedMap[item] = m[item]
 		sortedValues = append(sortedValues, m[item])
-		
+
 	}
-	return sortedMap, sortedValues, nil
+	return sortedMap, keys, sortedValues, nil
 }

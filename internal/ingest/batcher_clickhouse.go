@@ -36,7 +36,7 @@ func (b *BatcherWorker) Sink(data []map[string]interface{}) (count int, err erro
 		for i := 0; i < len(item); i++ {
 			// We got the map[string]interface{}, we will now extract the slice of
 			// values ([]interface{}) to append
-			_, sortedValues, err := SortMap(item[i])
+			_, _, sortedValues, err := SortMap(item[i])
 			if err != nil {
 				panic(err)
 			}
@@ -53,3 +53,23 @@ func (b *BatcherWorker) Sink(data []map[string]interface{}) (count int, err erro
 	}
 	return count, nil
 }
+
+// CREATE TABLE IF NOT EXISTS default (
+// 	`_channel` Nullable(String),
+// 	`_data` Tuple(
+// 	  bar Nullable(String),
+// 	  count Nullable(Int64),
+// 	  foo Nullable(String)),
+// 	`_level` Nullable(String),
+// 	`_logid` String,
+// 	`_message` Nullable(String),
+// 	`_senderid` Nullable(String),
+// 	`_timestamp` Nullable(Int64),
+// 	`float64.keys` Array(Nullable(String)),
+// 	`float64.values` Array(Nullable(Int64)),
+// 	`string.keys` Array(Nullable(String)),
+// 	`string.values` Array(Nullable(String)),
+//   )
+//   ENGINE = MergeTree
+//   PRIMARY KEY (_logid)
+//   ORDER BY _logid

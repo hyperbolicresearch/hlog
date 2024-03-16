@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+
+	"github.com/hyperbolicresearch/hlog/pkg/logger"
 )
 
 // Config is the top-level configuration for hlog
@@ -12,6 +14,8 @@ type Config struct {
 	*Kafka
 	*MongoDB
 	*ClickHouse
+	*Livetail
+	*Simulator
 }
 
 // Kafka holds the configuration for Kafka
@@ -37,9 +41,9 @@ type MongoDB struct {
 type ClickHouse struct {
 	*clickhouse.Options
 
-	KafkaConfigs Kafka
-	KafkaTopics []string
-	ConsumeInterval time.Duration
+	KafkaConfigs     Kafka
+	KafkaTopics      []string
+	ConsumeInterval  time.Duration
 	MinBatchableSize int
 	MaxBatchableSize int
 	MaxBatchableWait time.Duration
@@ -48,4 +52,21 @@ type ClickHouse struct {
 // FromYAML reads configs.yaml and extracts the configurations
 func FromYAML(filename string) (*Config, error) {
 	return nil, fmt.Errorf("config file %v not found", filename)
+}
+
+// Livetail holds the configuration for the terminal-base
+// visualization of the entering logs
+type Livetail struct {
+	KafkaTopics     []string
+	KafkaConfigs    Kafka
+	ConsumeInterval time.Duration
+	DefaultLevel    logger.Level
+}
+
+// Simulator holds the configurations for the log producing simulator
+type Simulator struct {
+	KafkaTopics     []string
+	KafkaConfigs    Kafka
+	ProduceInterval time.Duration
+	MessageLength   int
 }
