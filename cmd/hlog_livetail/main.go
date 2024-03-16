@@ -32,6 +32,7 @@ func main() {
 
 	// TODO make a better welcome message here
 	log.Println("Hlog live tail (experimental) up and running...")
+	log.Println("")
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)

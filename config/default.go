@@ -47,10 +47,10 @@ var (
 		},
 		KafkaConfigs:     DefaultKafkaConfig,
 		KafkaTopics:      []string{"default"},
-		ConsumeInterval:  time.Duration(100) * time.Millisecond,
+		ConsumeInterval:  time.Duration(5) * time.Second,
 		MinBatchableSize: 1,
-		MaxBatchableSize: 1000,
-		MaxBatchableWait: time.Duration(30) * time.Second,
+		MaxBatchableSize: 100,
+		MaxBatchableWait: time.Duration(10) * time.Second,
 	}
 
 	// DefaultLivetailConfig is the default Livetail configuration.
