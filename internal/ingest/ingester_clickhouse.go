@@ -56,7 +56,7 @@ type Messages struct {
 
 // TODO: make configs
 func NewClickHouseIngester(cfg *config.Config) *IngesterWorker {
-	kw, err := kafkaservice.NewKafkaWorker(cfg.Kafka)
+	kw, err := kafkaservice.NewKafkaWorker(&cfg.ClickHouse.KafkaConfigs)
 	if err != nil {
 		panic("failed to create ingester")
 	}

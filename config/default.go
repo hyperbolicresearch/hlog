@@ -15,6 +15,7 @@ var (
 		MongoDB:    &DefaultMongoDBConfig,
 		ClickHouse: &DefaultClickHouseConfig,
 		Livetail:   &DefaultLivetailConfig,
+		Simulator:  &DefaultSimulatorConfig,
 	}
 
 	// DefaultKafkaConfig is the default kafka configuration.
@@ -72,6 +73,6 @@ var (
 			Server: "0.0.0.0:65007",
 		},
 		ProduceInterval: time.Duration(5) * time.Second,
-		MessageLength: 7,
+		MessageLength:   7,
 	}
 )

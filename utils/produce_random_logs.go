@@ -63,9 +63,9 @@ func Generate(kafkaProducer *kafka.Producer, cfg *config.Config) {
 	index := rnd.Intn(len(cfg.Simulator.KafkaTopics))
 	topics := cfg.Simulator.KafkaTopics
 	channel := topics[index]
-	
+
 	id := uuid.New().String()
-	
+
 	index = rnd.Intn(5)
 	senderIds := []string{
 		"client-0001",
@@ -75,9 +75,9 @@ func Generate(kafkaProducer *kafka.Producer, cfg *config.Config) {
 		"client-0005",
 	}
 	senderId := senderIds[index]
-	
-	timestamp := time.Now().UnixNano()
-	
+
+	timestamp := time.Now().Unix()
+
 	index = rnd.Intn(5)
 	levels := []string{
 		"debug",
@@ -117,7 +117,7 @@ func Generate(kafkaProducer *kafka.Producer, cfg *config.Config) {
 
 	kafkaProducer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{
-			Topic:     &topics[index],
+			Topic:     &channel,
 			Partition: kafka.PartitionAny},
 		Value: []byte(value),
 	}, nil)
