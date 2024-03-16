@@ -32,8 +32,10 @@ func main() {
 	}
 
 	// We then start the ingesting processes in MongoDB and in ClickHouse.
-	// mongodbIngester := ingest.NewMongoDBIngester(cfg)
-	// go mongodbIngester.Start(sigchan)
+	mongodbIngester := ingest.NewMongoDBIngester(cfg)
 	clickhouseIngester := ingest.NewClickHouseIngester(cfg)
-	clickhouseIngester.Start(sigchan)
+	go mongodbIngester.Start(sigchan)
+	go clickhouseIngester.Start(sigchan)
+
+	<-sigchan
 }
