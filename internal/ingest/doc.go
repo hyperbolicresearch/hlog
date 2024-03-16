@@ -19,4 +19,4 @@ package ingest
 //     by batches which allows to update metrics and query results.
 //
 //  Flow
-//  Client -> Kafka -> MongoDB -> Client & Kafka -> ClickHouse <- Client
+//  Client -> Kafka -> MongoDB & ClickHouse <- Client

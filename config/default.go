@@ -8,8 +8,7 @@ import (
 )
 
 var (
-	// DefaultConfig is the default top-level configuration for the
-	// whole system.
+	// DefaultConfig is the default top-level configuration for the whole system.
 	DefaultConfig = Config{
 		Kafka:      &DefaultKafkaConfig,
 		MongoDB:    &DefaultMongoDBConfig,
