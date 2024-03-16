@@ -6,9 +6,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/hyperbolicresearch/hlog/utils"
-
 	"github.com/joho/godotenv"
+
+	"github.com/hyperbolicresearch/hlog/config"
+	"github.com/hyperbolicresearch/hlog/utils"
 )
 
 func init() {
@@ -26,6 +27,13 @@ func main() {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	utils.LiveTail()
+	// We load the configurations by reading the config.yaml, otherwise
+	// (if it fails to load), we load the default configurations.
+	cfg, err := config.FromYAML("config.yaml")
+	if err != nil {
+		cfg = &config.DefaultConfig
+	}
+
+	utils.LiveTail(cfg.Livetail)
 	<-sigchan
 }
