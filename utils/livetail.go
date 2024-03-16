@@ -48,5 +48,4 @@ func LiveTail(config *config.Livetail) {
 			}
 		}
 	}
-
 }

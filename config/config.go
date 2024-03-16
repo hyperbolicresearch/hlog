@@ -15,6 +15,7 @@ type Config struct {
 	*MongoDB
 	*ClickHouse
 	*Livetail
+	*Simulator
 }
 
 // Kafka holds the configuration for Kafka
@@ -60,4 +61,12 @@ type Livetail struct {
 	KafkaConfigs    Kafka
 	ConsumeInterval time.Duration
 	DefaultLevel    logger.Level
+}
+
+// Simulator holds the configurations for the log producing simulator
+type Simulator struct {
+	KafkaTopics     []string
+	KafkaConfigs    Kafka
+	ProduceInterval time.Duration
+	MessageLength   int
 }

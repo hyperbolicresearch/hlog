@@ -64,4 +64,14 @@ var (
 		ConsumeInterval: time.Duration(100) * time.Millisecond,
 		DefaultLevel:    logger.DEBUG,
 	}
+
+	// DefaultSimulatorConfig is the default Simulator configuration.
+	DefaultSimulatorConfig = Simulator{
+		KafkaTopics: []string{"default"},
+		KafkaConfigs: Kafka{
+			Server: "0.0.0.0:65007",
+		},
+		ProduceInterval: time.Duration(5) * time.Second,
+		MessageLength: 7,
+	}
 )
