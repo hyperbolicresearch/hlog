@@ -27,10 +27,15 @@ var (
 
 	// DefaultMongoDBConfig is the default MongoDB configuration.
 	DefaultMongoDBConfig = MongoDB{
-		Server:          "mongodb://localhost:27017/",
-		Database:        "hlog-default",
-		TopicCallback:   "hlog-mongodb-callback",
-		KafkaConfigs:    DefaultKafkaConfig,
+		Server:        "mongodb://localhost:27017/",
+		Database:      "hlog-default",
+		TopicCallback: "hlog-mongodb-callback",
+		KafkaConfigs: Kafka{
+			Server:           "0.0.0.0:65007",
+			GroupId:          "hlog-default-mongodb",
+			AutoOffsetReset:  "earliest",
+			EnableAutoCommit: true,
+		},
 		KafkaTopics:     []string{"default"},
 		ConsumeInterval: time.Millisecond * time.Duration(100),
 	}
@@ -44,7 +49,12 @@ var (
 				Database: "default",
 			},
 		},
-		KafkaConfigs:     DefaultKafkaConfig,
+		KafkaConfigs: Kafka{
+			Server:           "0.0.0.0:65007",
+			GroupId:          "hlog-default-clickhouse",
+			AutoOffsetReset:  "earliest",
+			EnableAutoCommit: true,
+		},
 		KafkaTopics:      []string{"default"},
 		ConsumeInterval:  time.Duration(5) * time.Second,
 		MinBatchableSize: 1,

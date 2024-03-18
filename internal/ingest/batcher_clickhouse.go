@@ -48,7 +48,11 @@ func (b *BatcherWorker) Sink(data []map[string]interface{}) (count int, err erro
 				b.IterCount += 1
 				b.Unlock()
 				count += 1
+				log.Printf("Batch %v inserted successfully into %s", count, channel)
 			}
+		}
+		if err := batch.Send(); err != nil {
+			return 0, err
 		}
 	}
 	return count, nil

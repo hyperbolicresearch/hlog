@@ -29,9 +29,6 @@ type IngesterWorker struct {
 	MongoDatabase *mongo.Database
 	IsRunning     bool
 	Messages      *Messages
-	// BufferSchemas stores the different schemas (one schema per channel)
-	//from the buffered messages.
-	BufferSchemas map[string][]interface{}
 	// ConsumeInterval is the periodic interval to consume messages
 	// from kafka.
 	ConsumeInterval time.Duration
@@ -85,7 +82,6 @@ func NewClickHouseIngester(cfg *config.Config) *IngesterWorker {
 			Conn: chConn,
 		},
 		Messages:         &Messages{},
-		BufferSchemas:    make(map[string][]interface{}),
 		KafkaWorker:      kw,
 		ConsumeInterval:  cfg.ClickHouse.ConsumeInterval,
 		MinBatchableSize: cfg.ClickHouse.MinBatchableSize,
