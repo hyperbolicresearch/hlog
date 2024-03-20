@@ -53,7 +53,7 @@ var (
 			Server:           "0.0.0.0:65007",
 			GroupId:          "hlog-default-clickhouse",
 			AutoOffsetReset:  "earliest",
-			EnableAutoCommit: true,
+			EnableAutoCommit: false,
 		},
 		KafkaTopics:      []string{"default"},
 		ConsumeInterval:  time.Duration(5) * time.Second,

@@ -28,6 +28,7 @@ type IngesterWorker struct {
 	*kafkaservice.KafkaWorker
 	MongoDatabase *mongo.Database
 	IsRunning     bool
+	IsIngesting   bool
 	Messages      *Messages
 	// ConsumeInterval is the periodic interval to consume messages
 	// from kafka.
@@ -130,7 +131,7 @@ func (i *IngesterWorker) Stop() error {
 // Consume reads up to i.MaxBatchableSize messages from Kafka and
 // orchestrate the further processing of these by invoking the
 // subsequent methods.
-func (i *IngesterWorker) Consume() error {
+func (i *IngesterWorker) Consume() {
 	// We will try to extract as much as possible messages from
 	// Kafka given that j <= i.MaxBatchableSize.
 	// Doing like that, we make sure that we always read less
@@ -140,15 +141,17 @@ func (i *IngesterWorker) Consume() error {
 		if err != nil {
 			continue
 		}
+		fmt.Printf("%+v\n", string(msg.Value))
 		var l core.Log
 		if err := json.Unmarshal(msg.Value, &l); err != nil {
-			return fmt.Errorf("error unmarshalling value %v: %v", msg.Value, err)
+			 panic(fmt.Errorf("error unmarshalling value %v: %v", msg.Value, err))
 		}
 		i.Messages.Lock()
 		i.Messages.Data = append(i.Messages.Data, &l)
 		i.Messages.Unlock()
 	}
 
+	fmt.Println("At least we got here")
 	// The following pipeline will perfom the preparation and the
 	// sink of the buffered data to ClickHouse.
 	_ = i.Transform()
@@ -161,21 +164,16 @@ func (i *IngesterWorker) Consume() error {
 	// Waiting until we have the acks that we successfully sink
 	// the data to ClickHouse (which should be sent from inside
 	// Sink)
-	i.Commit()
-	return nil
-}
-
-// Commit will turn commit the current offset in kafka
-func (i *IngesterWorker) Commit() error {
-	// 1. commit to current offset in kafka
-	// 2. log about batch processing completion
-	i.Consumer.Commit()
-	return nil
+	_, err = i.Consumer.Commit()
+	if err != nil {
+		panic(err)
+	}
 }
 
 // Transform will flatten the message to the appropriate format
 // that will be stored to ClickHouse, add metadata.
 func (i *IngesterWorker) Transform() error {
+	fmt.Println("Transforming")
 	for _, entry := range i.Messages.Data {
 		// metadata fields
 		t := make(map[string]interface{})
@@ -225,6 +223,7 @@ func (i *IngesterWorker) Transform() error {
 // ExtractSchemas takes a bunch of data and extracts the SQL compatible
 // schema out of them.
 func (i *IngesterWorker) ExtractSchemas() error {
+	fmt.Println("Extracting schema")
 	i.Messages.RLock()
 	data := i.Messages.TransformedData
 	i.Messages.RUnlock()
