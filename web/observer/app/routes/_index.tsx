@@ -16,7 +16,7 @@ export const meta: MetaFunction = () => {
 export default function Index() {
   return (
     <p className="text-3xl font-bold text-red">
-      Hello world!!!
+      
     </p>
   );
 }
