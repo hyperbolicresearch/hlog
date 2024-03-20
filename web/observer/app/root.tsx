@@ -12,7 +12,6 @@ import { LinksFunction } from "@remix-run/node";
 import {
   HomeIcon,
   ChartPieIcon,
-  Bars3BottomLeftIcon,
   QueueListIcon,
   ChartBarSquareIcon,
   BoltIcon,
@@ -84,32 +83,40 @@ export function SideBar() {
 
   return (
     <div className="w-64 px-6 py-4 border-r-[1px] h-[92vh]">
-      <p className="text-[#808081] text-sm">Observability tools</p>
-      <ul className="py-2">
-        {
-          observability_menu.map((menu, index) => (
-            <li className="py-4">
-              <NavLink to={menu.to} key={index} className="flex gap-2 pl-3">
-                {menu.icon}
-                <p className="text-sm">{menu.title}</p>
-              </NavLink>
-            </li>
-          ))
-        }
-      </ul>
-      <p className="text-[#808081] text-sm">Administrative tools</p>
-      <ul className="py-2">
-        {
-          administrative_menu.map((menu, index) => (
-            <li className="py-4">
-              <NavLink to={menu.to} key={index} className="flex gap-2 pl-4">
-                {menu.icon}
-                <p className="text-sm">{menu.title}</p>
-              </NavLink>
-            </li>
-          ))
-        }
-      </ul>
+      <p className="text-[#808081] text-sm mb-4">Observability tools</p>
+      {
+        observability_menu.map((menu, index) => (
+          <NavLink 
+            to={menu.to} 
+            key={index} 
+            className={({isActive}) => 
+              isActive 
+                ? "flex gap-2 pl-3 py-3 bg-[#f2f2f2] rounded-lg" 
+                : "flex gap-2 pl-3 py-3"
+            }
+          >
+            {menu.icon}
+            <p className="text-sm">{menu.title}</p>
+          </NavLink>
+        ))
+      }
+      <p className="text-[#808081] text-sm my-4">Administrative tools</p>
+      {
+        administrative_menu.map((menu, index) => (
+          <NavLink 
+            to={menu.to} 
+            key={index} 
+            className={({isActive}) => 
+              isActive 
+                ? "flex gap-2 pl-3 py-3 bg-[#f2f2f2] rounded-lg" 
+                : "flex gap-2 pl-3 py-3"
+            }
+          >
+            {menu.icon}
+            <p className="text-sm">{menu.title}</p>
+          </NavLink>
+        ))
+      }
     </div>
   )
 }
