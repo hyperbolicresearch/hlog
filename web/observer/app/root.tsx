@@ -57,7 +57,7 @@ export function Header() {
         <img 
           alt="project-name"
           src="randname.jpg"
-          className="w-12 h-12 rounded-lg"
+          className="w-10 h-10 rounded-lg"
         />
         <div>
           <p className="text-sm">Hypercluster</p>
@@ -66,7 +66,7 @@ export function Header() {
       </div>
       <div className="flex gap-4 items-center">
         <BellIcon width={30} height={30} />
-        <div className="bg-[#1C65F4] px-4 py-3 rounded-lg flex items-center gap-2">
+        <div className="bg-[#1C65F4] px-3 py-2 rounded-lg flex items-center gap-2">
           <RectangleStackIcon width={24} color="white" />
           <p className="text-sm text-white">Create channel</p>
         </div>
@@ -74,7 +74,7 @@ export function Header() {
           <img 
             alt="profile-img"
             src="profile_img.jpg"
-            className="w-12 h-12 rounded-full object-cover"
+            className="w-10 h-10 rounded-full object-cover"
           />
           <div className="flex flex-col justify-center leading-tight">
             <p className="text-sm">Nahum Maurice</p>
