@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -44,32 +45,64 @@ type LoggerI interface {
 
 type Logger struct {
 	sync.RWMutex
-	Level Level
-	io.Writer
+	Level   Level
+	Writers []io.Writer
 }
 
 func New(defaultLevel Level, writer io.Writer) *Logger {
 	return &Logger{
-		Level:  defaultLevel,
-		Writer: writer,
+		Level:   defaultLevel,
+		Writers: []io.Writer{writer},
 	}
+}
+
+// AddWriter adds a new writer to the logger
+func (l *Logger) AddWriter(w io.Writer) error {
+	l.Lock()
+	for _, v := range l.Writers {
+		if v == w {
+			l.Unlock()
+			return nil
+		}
+	}
+	l.Writers = append(l.Writers, w)
+	l.Unlock()
+	return nil
+}
+
+// RemoveWriter removes a writer from the logger
+func (l *Logger) RemoveWriter(w io.Writer) error { 
+	l.Lock()
+	for i, v := range l.Writers {
+		if v == w {
+			l.Writers = append(l.Writers[:i], l.Writers[i+1:]...)
+		}
+	}
+	l.Unlock()
+	return nil 
 }
 
 // Log will take a Log and write it in a readable/formatted manner
 // to the passed io.Writer
 func (l *Logger) Log(data interface{}) error {
+	l.Lock()
+	defer l.Unlock()
 	switch data := data.(type) {
 	case []byte:
 		data = append(data, '\n')
-		_, err := l.Write(data)
-		if err != nil {
-			return err
+		for _, l := range l.Writers {
+			_, err := l.Write(data)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	case string:
-		_, err := l.Write([]byte(data + "\n"))
-		if err != nil {
-			return err
+		for _, l := range l.Writers {
+			_, err := l.Write([]byte(data + "\n"))
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	case core.Log:
@@ -100,9 +133,22 @@ func (l *Logger) Log(data interface{}) error {
 		str += RESET
 		str += "\n"
 
-		_, err = l.Write([]byte(str))
-		if err != nil {
-			return err
+		for _, l := range l.Writers {
+			if _, ok := l.(*os.File); ok {
+				_, err = l.Write([]byte(str))
+				if err != nil {
+					return err
+				}
+				continue
+			}
+			js, err := json.Marshal(data)
+			if err != nil {
+				return err
+			}
+			_, err = l.Write([]byte(js))
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}

@@ -21,10 +21,11 @@ type BatcherWorker struct {
 	IterCount int64
 }
 
-// Sync will receive a slice of data ready to be added to ClickHouse
+// Sink will receive a slice of data ready to be added to ClickHouse
 // and will proceed to the dumping of those data in an efficient
 // manner, givent the shape of the data.
 func (b *BatcherWorker) Sink(data []map[string]interface{}) (count int, err error) {
+	fmt.Println("Sinking")
 	dataByChannel := GetDataByChannel(data)
 	count = 0
 	for channel, item := range dataByChannel {
@@ -42,14 +43,22 @@ func (b *BatcherWorker) Sink(data []map[string]interface{}) (count int, err erro
 			}
 			err = batch.Append(sortedValues...)
 			if err != nil {
-				log.Printf("Error inserting item: %v into %v. Error=%v", sortedValues, channel, err)
+				log.Printf("Error inserting item: %v into %v. Error=%v",
+					sortedValues, channel, err)
 			} else {
-				b.Lock()
-				b.IterCount += 1
-				b.Unlock()
-				count += 1
+				log.Println("Added to batch...")
 			}
 		}
+		// Committing changes
+		if err := batch.Send(); err != nil {
+			return 0, err
+		}
+		// Updating the counter
+		b.Lock()
+		b.IterCount += 1
+		b.Unlock()
+		count += 1
+		log.Printf("Batch %v inserted successfully into %s", count, channel)
 	}
 	return count, nil
 }

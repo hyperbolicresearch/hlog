@@ -57,10 +57,12 @@ func FromYAML(filename string) (*Config, error) {
 // Livetail holds the configuration for the terminal-base
 // visualization of the entering logs
 type Livetail struct {
-	KafkaTopics     []string
-	KafkaConfigs    Kafka
-	ConsumeInterval time.Duration
-	DefaultLevel    logger.Level
+	KafkaTopics             []string
+	KafkaConfigs            Kafka
+	ConsumeInterval         time.Duration
+	DefaultLevel            logger.Level
+	MaxWebsocketConnections int
+	WebsocketPort           int
 }
 
 // Simulator holds the configurations for the log producing simulator

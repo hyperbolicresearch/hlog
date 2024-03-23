@@ -133,7 +133,7 @@ func (m *MongoDBIngester) Sink(msg *kafka.Message) error {
 		m.KafkaWorker.Unlock()
 	}
 
-	log.Printf("Successfully processed log from topic: %-10v Message: %v",
+	log.Printf("Successfully processed log from topic: %-10v Message: %v\n",
 		*msg.TopicPartition.Topic, value.Message)
 
 	return nil
