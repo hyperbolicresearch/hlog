@@ -40,7 +40,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </main>
         <ScrollRestoration />
         <Scripts />
-        <LiveReload />
+        {/* <LiveReload /> */}
       </body>
     </html>
   );
@@ -52,7 +52,7 @@ export default function App() {
 
 export function Header() {
   return (
-    <div className="px-8 h-[5rem] flex justify-between items-center w-[80vw]">
+    <div className="px-8 h-[5rem] flex flex-shrink-0 justify-between items-center w-[80vw]">
       <div className="flex items-center gap-2">
         <img 
           alt="project-name"

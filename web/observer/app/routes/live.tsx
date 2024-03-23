@@ -1,17 +1,42 @@
+import { useEffect, useState } from "react";
+import io from "socket.io-client";
+
 import {
   DocumentIcon,
 } from "@heroicons/react/24/outline"
 
+type LogT = {
+  channel: string
+  log_id: string
+  sender_id: string
+  timestamp: number
+  level: string
+  message:string
+  data: object
+}
+
 export default function Live() {
-  const logs = [
-    {channel: "transaction", log_id: "1234", sender_id: "client-1", timestamp: Date.now(), level: "info", message: "Some random message that is way longer than necessary", data: {foo: "foo", bar: "bar", baz: "baz"}},
-    {channel: "transaction", log_id: "2345", sender_id: "client-2", timestamp: Date.now(), level: "debg", message: "Some random message", data: {foo: "some foo thing", bar: "some bar stuff", baz: "baz"}},
-    {channel: "transaction", log_id: "3456", sender_id: "client-1", timestamp: Date.now(), level: "warn", message: "Some random message", data: {foo: "foo", bar: "bar", baz: "baz"}},
-    {channel: "transaction", log_id: "4567", sender_id: "client-3", timestamp: Date.now(), level: "info", message: "Some random message", data: {foo: "foo", bar: "bar", baz: "baz"}},
-  ]
+  const inital_logs : LogT[] = [];
+  const [logs, setLogs] = useState<LogT[]>(inital_logs)
+
+  useEffect(() => {
+    let socket = new WebSocket("ws://localhost:1337");
+    socket.onopen = () => {
+      socket.send("Connection");
+    };
+    socket.onmessage = (event) => {
+      console.log(event.data);
+      const _data = JSON.parse(event.data);
+      setLogs((logs) => [_data, ...logs]);
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [])
 
   return (
-    <section className="p-8 flex flex-col gap-2">
+    <section className="p-8 flex flex-col gap-2 overflow-auto">
       {
         logs.map(log => (
           <article key={log.log_id} className="bg-[#FAFAFA] px-4 py-3 rounded-lg flex gap-4 items-center">
