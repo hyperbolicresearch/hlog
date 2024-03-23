@@ -71,8 +71,10 @@ var (
 			AutoOffsetReset:  "earliest",
 			EnableAutoCommit: true,
 		},
-		ConsumeInterval: time.Duration(100) * time.Millisecond,
-		DefaultLevel:    logger.DEBUG,
+		ConsumeInterval:         time.Duration(100) * time.Millisecond,
+		DefaultLevel:            logger.DEBUG,
+		MaxWebsocketConnections: 5,
+		WebsocketPort:           1337,
 	}
 
 	// DefaultSimulatorConfig is the default Simulator configuration.
