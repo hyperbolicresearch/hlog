@@ -14,6 +14,7 @@ import {
   Legend,
   ChartData,
 } from 'chart.js';
+import moment from 'moment';
 
 ChartJS.register(
   CategoryScale,
@@ -115,6 +116,25 @@ export default function Live() {
     setDisplayModal(!displayModal);
   }
 
+  const timeAgo = (interval: number) : string => {
+    let str = "("
+    const days = Math.floor(interval / 84600)
+    let remaining = Math.floor(interval % 84600)
+    const hours = Math.floor(remaining / 3600)
+    remaining = Math.floor(remaining % 3600)
+    const minutes = Math.floor(remaining / 60)
+    remaining = Math.floor(remaining % 60)
+    const seconds = Math.floor(remaining)
+
+    if (days != 0) { str += `${days} days `}
+    if (hours != 0) { str += `${hours} hours `}
+    if (minutes != 0) { str += `${minutes} minutes `}
+    if (seconds != 0) { str += `${seconds} seconds`} else {
+      str += "just now"
+    }
+    return str + ")"
+  }
+
   return (
     <section className="px-8 flex flex-col gap-2 overflow-auto">
       {displayModal && createPortal(
@@ -132,12 +152,16 @@ export default function Live() {
         </section>
         <section className="w-[25%] flex flex-col justify-between">
           <p className="text-[#86898D] text-sm">Timeframe</p>
-          <p></p>
-          <p className="text-white text-2xl">{
-            new Date(logs[logs.length - 1]?.timestamp * 1000).toLocaleTimeString() + 
-            " - " + 
-            new Date(logs[0]?.timestamp * 1000).toLocaleTimeString()}
-          </p>
+          <div>
+            <p className="text-[#86898D] text-sm ">
+              {timeAgo(logs[0]?.timestamp - logs[logs.length - 1]?.timestamp)}
+            </p>
+            <p className="text-white text-2xl">{
+              new Date(logs[logs.length - 1]?.timestamp * 1000).toLocaleTimeString() + 
+              " - " + 
+              new Date(logs[0]?.timestamp * 1000).toLocaleTimeString()}
+            </p>
+          </div>
         </section>
         <section className="w-[22%] flex flex-col justify-between">
           <p className="text-[#86898D] text-sm">Logs per levels</p>
@@ -186,9 +210,44 @@ const Modal: React.FC<ModalProps> = (props) : JSX.Element => {
       onClick={(e) => props.onClick(props.log)}
     >
       <div 
-        className="h-[100%] w-[50%] bg-white"
+        className="h-[100%] w-[50%] bg-white p-4 overflow-auto"
         onClick={e => { e.stopPropagation(); }}
       >
+        <div className="flex justify-between gap-4">
+          <div className="flex gap-8">
+            <div className="gap-2 items-center">
+              <p className="text-sm text-[#5D5D5D]">Log ID</p>
+              <p className="text-sm">{props.log?.log_id}</p>
+            </div>
+            <div className="gap-2 items-center">
+              <p className="text-sm text-[#5D5D5D]">Channel</p>
+              <p className="text-sm">{props.log?.channel}</p>
+            </div>
+            <div className="gap-2 items-center">
+              <p className="text-sm text-[#5D5D5D]">From</p>
+              <p className="text-sm">
+                {props.log && moment(props.log?.timestamp * 1000).fromNow()}
+              </p>
+            </div>
+          </div>
+          <div className="bg-black py-2 px-6 rounded-md">
+            <p className="text-white">{props.log?.level}</p>
+          </div>
+        </div>
+        <div className="pt-4">
+          <p className="text-sm text-[#5D5D5D]">Message</p>
+          <p className="text-4xl">{props.log?.message}</p>
+        </div>
+        <div className="pt-4">
+          <p className="text-sm text-[#5D5D5D]">Sender ID</p>
+          <p>{props.log?.sender_id}</p>
+        </div>
+        <div className="pt-4">
+          <p className="text-sm text-[#5D5D5D]">Data</p>
+          <pre className="p-4 text-sm bg-[#FAFAFA] mt-2 rounded-md overflow-auto">
+            {JSON.stringify(props.log?.data, null, 2)}
+          </pre>
+        </div>
       </div>
     </div>
   )

@@ -15,7 +15,7 @@ export const meta: MetaFunction = () => {
 
 export default function Index() {
   return (
-    <div className="relative overflow-auto w-[80vw]">
+    <div className="relative overflow-auto w-full">
       <section className="flex justify-between mx-8 bg-black rounded-[20px] mt-2">
         <div className="p-8 flex flex-col justify-between">
           <div className="flex items-center">
