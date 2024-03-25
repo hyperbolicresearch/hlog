@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import {
   DocumentIcon,
@@ -52,6 +53,14 @@ export default function Live() {
     "error": 0,
     "fatal": 0,
   }
+  const [displayModal, setDisplayModal] = useState<boolean>(false)
+  const [modalItem, setModalItem] = useState<LogT>()
+
+  // TODO here, upon opening, we connect to the WS server
+  // to receive the newest logs. But there are several things we need
+  // to work with:
+  // Sometimes, we are not connected, even if we are on this page.
+  // take care of reconnecting everytime this is open.
   useEffect(() => {
     let socket = new WebSocket("ws://localhost:1337");
     socket.onopen = () => {
@@ -95,8 +104,23 @@ export default function Live() {
     ],
   }
 
+  const onClickDisplayModal = (
+    item: LogT | undefined
+  ) => {
+    if (displayModal === false) {
+      if (item) {
+        setModalItem(item)
+      }
+    }
+    setDisplayModal(!displayModal);
+  }
+
   return (
     <section className="px-8 flex flex-col gap-2 overflow-auto">
+      {displayModal && createPortal(
+        <Modal onClick={onClickDisplayModal} log={modalItem}/>, 
+        document.body
+      )}
       <article className="bg-black p-4 rounded-lg flex justify-between">
         <section className="w-[25%] flex flex-col justify-between">
           <p className="text-[#86898D] text-sm">Total loaded logs</p>
@@ -133,6 +157,7 @@ export default function Live() {
           <article 
             key={log.log_id} 
             className="bg-[#FAFAFA] px-4 py-3 rounded-lg flex gap-2 items-center cursor-pointer"
+            onClick={() => onClickDisplayModal(log)}
           >
             <DocumentIcon width={20} height={20} color="#86898D" />
             <p className="text-sm w-[20%] text-[#86898D]">{new Date(log.timestamp * 1000).toISOString()}</p>
@@ -144,5 +169,27 @@ export default function Live() {
         ))
       }
     </section>
+  )
+}
+
+type ModalProps = {
+  log: LogT | undefined
+  onClick: (
+    item: LogT | undefined
+  ) => void
+}
+
+const Modal: React.FC<ModalProps> = (props) : JSX.Element => {
+  return (
+    <div 
+      className="z-50 bg-black bg-opacity-50 h-[100%] w-[100%] absolute top-0 left-0 flex justify-end"
+      onClick={(e) => props.onClick(props.log)}
+    >
+      <div 
+        className="h-[100%] w-[50%] bg-white"
+        onClick={e => { e.stopPropagation(); }}
+      >
+      </div>
+    </div>
   )
 }
