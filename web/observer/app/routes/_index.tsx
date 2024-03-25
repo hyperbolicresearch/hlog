@@ -16,7 +16,7 @@ export const meta: MetaFunction = () => {
 export default function Index() {
   return (
     <div className="relative overflow-auto w-[80vw]">
-      <section className="flex justify-between mx-8 bg-black rounded-[20px] mt-6">
+      <section className="flex justify-between mx-8 bg-black rounded-[20px] mt-2">
         <div className="p-8 flex flex-col justify-between">
           <div className="flex items-center">
             <img 
@@ -32,7 +32,7 @@ export default function Index() {
             <h1 className="text-white text-6xl">
               Highly performant, scalable logging system.
             </h1>
-            <p className="text-[#808081] text-xl">
+            <p className="text-[#808081] text-xl font-light">
               Ingest billions of log units  from an arbitrary number of clients in just 
               a fraction of a second, while enjoying fast analytical queries running !
             </p>
