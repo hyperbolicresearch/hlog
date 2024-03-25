@@ -89,16 +89,25 @@ func Generate(kafkaProducer *kafka.Producer, cfg *config.Config) {
 	level := levels[index]
 
 	message := ""
+	foo := ""
+	bar := ""
 	for i := 0; i < cfg.Simulator.MessageLength; i++ {
 		word := randomstring.HumanFriendlyEnglishString(7) + " "
+		wfoo := randomstring.HumanFriendlyEnglishString(7) + " "
+		wbar := randomstring.HumanFriendlyEnglishString(7) + " "
 		message += word
+		foo += wfoo
+		bar += wbar
 	}
 	message = strings.TrimSpace(message)
 
 	data := map[string]interface{}{
-		"foo":   "foo",
-		"bar":   "bar",
+		"foo":   foo,
+		"bar":   bar,
 		"count": index,
+		"firstname": "John",
+		"lastname": "Doe",
+		"company": "Acme Inc.",
 	}
 
 	sendableLog := core.Log{

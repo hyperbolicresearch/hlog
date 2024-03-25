@@ -30,10 +30,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body>
-        <main className="h-screen w-screen flex">
+      <body className="flex justify-center">
+        <main className="h-screen w-full flex max-w-screen-2xl self-center">
           <SideBar />
-          <div className="flex flex-col">
+          <div className="flex flex-col w-[80%]">
             <Header />
             {children}
           </div>
@@ -52,7 +52,7 @@ export default function App() {
 
 export function Header() {
   return (
-    <div className="px-8 h-[5rem] flex flex-shrink-0 justify-between items-center w-[80vw]">
+    <div className="px-8 h-[5rem] flex flex-shrink-0 justify-between items-center w-full">
       <div className="flex items-center gap-2">
         <img 
           alt="project-name"
@@ -101,7 +101,7 @@ export function SideBar() {
   ]
 
   return (
-    <div className="w-[20vw] px-6 py-4 h-full bg-[#F3F5F6]">
+    <div className="w-[20%] px-6 py-4 h-full bg-[#F3F5F6]">
       <div className="flex gap-2 items-center mb-12">
         <img 
           src="hlog_logo.png"

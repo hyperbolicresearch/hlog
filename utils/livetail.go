@@ -58,14 +58,14 @@ func LiveTail(config *config.Livetail, sigchan chan os.Signal) {
 		}
 	}()
 
-	ticker := time.NewTicker(time.Second)
+	// ticker := time.NewTicker(time.Second)
 	run := true
 	for run {
 		select {
-		case <-ticker.C:
-			logger.RLock()
-			fmt.Println(len(logger.Writers))
-			logger.RUnlock()
+		// case <-ticker.C:
+		// 	logger.RLock()
+		// 	fmt.Println(len(logger.Writers))
+		// 	logger.RUnlock()
 		case <-sigchan:
 			log.Printf("Caught signal: %v", sigchan)
 			run = false
