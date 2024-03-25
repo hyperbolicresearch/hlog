@@ -9,7 +9,7 @@ Hlog is a log aggregator that provides an end-to-end experience from collecting 
 - [x] Log aggregation
 - [x] Log storage
 - [x] CLI observability tools
-- [ ] Web-based observability tools
+- [x] Web-based observability tools
 - [ ] Support for SQL
 - [ ] Individual log processing
 - [ ] Group of logs processing
