@@ -2,7 +2,7 @@
 
 As the name indicates it, this so-called API is intended to serve the `Observer`. 
 
-> You can check what the Observer is [Observer](https://github.com/hyperbolicresearch/hlog/blob/dev/README.md)
+> You can check what the Observer is [Observer](https://github.com/hyperbolicresearch/hlog/blob/dev/web/observer/README.md)
 
 Through the current, we will have different communication channels with the Observer, such as:
 1. `/live`: which is sending new logs in live streaming.
