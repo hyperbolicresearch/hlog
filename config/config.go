@@ -16,6 +16,7 @@ type Config struct {
 	*ClickHouse
 	*Livetail
 	*Simulator
+	*API
 }
 
 // Kafka holds the configuration for Kafka
@@ -61,6 +62,8 @@ type Livetail struct {
 	KafkaConfigs            Kafka
 	ConsumeInterval         time.Duration
 	DefaultLevel            logger.Level
+	InitLogsLoadedCount     int
+	Logger                  *logger.Logger
 	MaxWebsocketConnections int
 	WebsocketPort           int
 }
@@ -71,4 +74,8 @@ type Simulator struct {
 	KafkaConfigs    Kafka
 	ProduceInterval time.Duration
 	MessageLength   int
+}
+
+type API struct {
+	ServerAddr string
 }

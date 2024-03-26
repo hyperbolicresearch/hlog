@@ -1,6 +1,7 @@
 package config
 
 import (
+	"os"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -15,6 +16,7 @@ var (
 		ClickHouse: &DefaultClickHouseConfig,
 		Livetail:   &DefaultLivetailConfig,
 		Simulator:  &DefaultSimulatorConfig,
+		API:        &DefaultAPIConfig,
 	}
 
 	// DefaultKafkaConfig is the default kafka configuration.
@@ -73,6 +75,8 @@ var (
 		},
 		ConsumeInterval:         time.Duration(100) * time.Millisecond,
 		DefaultLevel:            logger.DEBUG,
+		InitLogsLoadedCount:     100,
+		Logger:                  logger.New(logger.DEBUG, os.Stdout),
 		MaxWebsocketConnections: 5,
 		WebsocketPort:           1337,
 	}
@@ -85,5 +89,9 @@ var (
 		},
 		ProduceInterval: time.Duration(5) * time.Second,
 		MessageLength:   7,
+	}
+
+	DefaultAPIConfig = API{
+		ServerAddr: "localhost:1542",
 	}
 )
