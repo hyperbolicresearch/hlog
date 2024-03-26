@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"sync"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -151,6 +152,7 @@ func (s *Server) HandleLiveInit(w http.ResponseWriter, r *http.Request) {
 		values = append(values, &l)
 	}
 
+	slices.Reverse(values)
 	jsonValues, err := json.Marshal(values)
 	if err != nil {
 		panic(err)

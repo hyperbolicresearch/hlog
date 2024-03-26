@@ -1,3 +1,4 @@
+import { json } from "@remix-run/node";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import {
@@ -15,6 +16,7 @@ import {
   ChartData,
 } from 'chart.js';
 import moment from 'moment';
+import { useLoaderData } from "@remix-run/react";
 
 ChartJS.register(
   CategoryScale,
@@ -44,8 +46,17 @@ type LogLevelCount = {
   [key: string]: number;
 };
 
+export const loader = async () => {
+  const url = "http://localhost:1542/liveinit"
+  let response = await fetch(url)
+  response = await response.json()
+  return json(response)
+}
+
 export default function Live() {
-  const inital_logs : LogT[] = [];
+  const inital_loaded_logs = useLoaderData<typeof loader>();
+
+  const inital_logs : LogT[] = inital_loaded_logs as unknown as LogT[];
   const [logs, setLogs] = useState<LogT[]>(inital_logs)
   const level_map: LogLevelCount = {
     "debug": 0,
@@ -63,7 +74,7 @@ export default function Live() {
   // Sometimes, we are not connected, even if we are on this page.
   // take care of reconnecting everytime this is open.
   useEffect(() => {
-    let socket = new WebSocket("ws://localhost:1337");
+    let socket = new WebSocket("ws://localhost:1542/live");
     socket.onopen = () => {
       socket.send("Connection");
     };
