@@ -95,9 +95,9 @@ func NewClickHouseIngester(cfg *config.Config) *IngesterWorker {
 // Start spins up the consuming process generally speaking. It runs as
 // long as i.IsRunning is true and tracks new incomming logs
 func (i *IngesterWorker) Start(stop chan os.Signal) {
-	// TODO: Should I really panic here?
 	i.RLock()
 	if i.IsRunning {
+		// TODO: Should I really panic here?
 		panic("Ingester worker already running...")
 	}
 	i.RUnlock()

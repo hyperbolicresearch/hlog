@@ -31,9 +31,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body className="flex justify-center">
-        <main className="h-screen w-full flex max-w-screen-2xl self-center">
+        <main className="h-screen w-full flex self-center">
           <SideBar />
-          <div className="flex flex-col w-[80%]">
+          <div className="flex flex-col w-full items-center">
             <Header />
             {children}
           </div>
@@ -101,7 +101,7 @@ export function SideBar() {
   ]
 
   return (
-    <div className="w-[20%] px-6 py-4 h-full bg-[#F3F5F6]">
+    <div className="w-[18rem] px-6 py-4 h-full bg-[#F3F5F6]">
       <div className="flex gap-2 items-center mb-12">
         <img 
           src="hlog_logo.png"

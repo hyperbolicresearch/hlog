@@ -136,12 +136,12 @@ export default function Live() {
   }
 
   return (
-    <section className="px-8 flex flex-col gap-2 overflow-auto">
+    <section className="px-8 flex flex-col gap-2 overflow-auto w-full max-w-screen-xl">
       {displayModal && createPortal(
         <Modal onClick={onClickDisplayModal} log={modalItem}/>, 
         document.body
       )}
-      <article className="bg-black p-4 rounded-lg flex justify-between">
+      <article className="bg-black p-4 rounded-[20px] flex justify-between">
         <section className="w-[25%] flex flex-col justify-between">
           <p className="text-[#86898D] text-sm">Total loaded logs</p>
           <p className="text-white text-5xl">{logs.length}</p>
