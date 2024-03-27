@@ -21,11 +21,12 @@ func main() {
 		cfg = &config.DefaultConfig
 	}
 
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+
 	// Launching the livetail. But why ???
 	// utils.Livetail is basically a Kafka consumer which reads messages
 	// as they arrive to the system.
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 	go utils.LiveTail(cfg.Livetail, sigchan)
 
 	log.Println("hlogAPI up and running...")

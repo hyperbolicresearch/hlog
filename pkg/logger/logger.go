@@ -66,7 +66,6 @@ func (l *Logger) AddWriter(w io.Writer) error {
 		}
 	}
 	l.Writers = append(l.Writers, w)
-	fmt.Println("New writer")
 	l.Unlock()
 	return nil
 }

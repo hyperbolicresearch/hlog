@@ -1,23 +1,19 @@
 ![Web look](https://github.com/hyperbolicresearch/hlog/blob/dev/assets/github_img.png)
 
-> Please, this project is under massive development and one shouldn't take anything written here or in the whole software for definitive facts. We are just conducting experimentations. Keep in mind that the creator(s) is/are just thinking loud (thinking in public) until otherwise said.
+> This project is under massive development and can undergo changes in the conceptual framework and implementation. We are just conducting experimentations, just thinking loud until otherwise said.
 
-Hlog is a log aggregator that provides an end-to-end experience from collecting logs from applications and infrastructures to a complete set of observability, query and processing tools. The project is under development and only a part of it is available. PLEASE, DO NOT USE IN PRODUCTION (yet).
+hlog is an observability platform focused on logs and metrics aggregation built to be the base layer of a whole computing ecosystem. To achieve performance, it's designed with several key characteristics:
 
-## Features
+1. `Extensibility` meaning that you can build on top of it by leveraging the exposed API.
+2. `Performance` by being fault-tolerant, scalable and supporting high throughput.
+3. `Flexibility` by enforcing the composability of the different components.
+4. `Compatibility` by integrating with existing tools.
+5. `Cloud-native` through containerization, support for configuration settings, etc...
 
-- [x] Log aggregation
-- [x] Log storage
-- [x] CLI observability tools
-- [x] Web-based observability tools
-- [ ] Support for SQL
-- [ ] Individual log processing
-- [ ] Group of logs processing
+## Components
 
-## Benchmarks
+The hlog stack is composed by three components:
 
-It is a little bit too early to perform benchmarks, but given the architectural choices that we have made, we are confident about the future. We hope that we will update this description soon.
-
-## Oops, where is the doc?
-
-Yeah, it's coming. One more week and you should be able to try it. It doesn't worth touching yet :)
+- `client` is the interface that interacts with applications and infrastructures and sending the collected logs and metrics to the system.
+- `hlog` is the main server which processes and stores the logs and metrics, and also exposing the API for interaction with them.
+- `observer` as the user interface.

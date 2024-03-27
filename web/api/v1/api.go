@@ -139,6 +139,8 @@ func (s *Server) HandleLiveInit(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
+	// TODO benchmark this to evaluate how the marshalling and
+	// the unmarshallign penalize the process in term of performance.
 	values := make([]*core.Log, 0, s.Config.Livetail.InitLogsLoadedCount)
 	for i := 0; i < s.Config.Livetail.InitLogsLoadedCount; i++ {
 		msg, err := kw.Consumer.ReadMessage(-1)

@@ -1,4 +1,4 @@
-# Observable API
+# Observer API
 
 As the name indicates it, this so-called API is intended to serve the `Observer`. 
 
