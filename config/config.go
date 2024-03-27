@@ -80,10 +80,9 @@ type Simulator struct {
 type APIv1 struct {
 	// ServerAddr is the address on which the API is listening
 	ServerAddr string
-	
-	
+
 	// Livetail configurations ___________________________________________
-	
+
 	// LivetailLogger writes the livetail logs
 	LivetailLogger *logger.Logger
 	// MaxLiveTailWebsocketConnections is the number of concurrent readers
@@ -96,10 +95,9 @@ type APIv1 struct {
 	// InitLogsLoadedCount is the number of logs to load on the fly before
 	// starting the livetailing process
 	InitLogsLoadedCount int
-	
-	
+
 	// ObservablesTail configurations ____________________________________
-	
+
 	// GeneralObservablesLogger writes the general observable metrics
 	GeneralObservablesLogger *logger.Logger
 	// MaxGenObsWebsocketConnections is the number of concurrent

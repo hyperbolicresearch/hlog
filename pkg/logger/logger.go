@@ -2,7 +2,6 @@ package logger
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -164,5 +163,4 @@ func (l *Logger) Log(data interface{}) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("unsupported log format: %T", data)
 }
