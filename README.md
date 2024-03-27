@@ -5,7 +5,7 @@
 hlog is an observability platform focused on logs and metrics aggregation built to be the base layer of a whole computing ecosystem. To achieve performance, it's designed with several key characteristics:
 
 1. `Extensibility` meaning that you can build on top of it by leveraging the exposed API.
-2. `Performance` by being fault-tolerant, scalable and supporting high throughput.
+2. `Performance` by being fault-tolerant, highly available and scalable.
 3. `Flexibility` by enforcing the composability of the different components.
 4. `Compatibility` by integrating with existing tools.
 5. `Cloud-native` through containerization, support for configuration settings, etc...
