@@ -14,6 +14,6 @@ hlog is an observability platform focused on logs and metrics aggregation built 
 
 The hlog stack is composed by three components:
 
-- `client` is the interface that interacts with applications and infrastructures and sending the collected logs and metrics to the system.
+- `collector` is the interface that interacts with applications and infrastructures and sending the collected logs and metrics to the system.
 - `hlog` is the main server which processes and stores the logs and metrics, and also exposing the API for interaction with them.
 - `observer` as the user interface.

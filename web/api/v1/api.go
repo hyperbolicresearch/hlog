@@ -17,6 +17,7 @@ import (
 	"github.com/hyperbolicresearch/hlog/pkg/logger"
 )
 
+// Server is the server that runs and exposes the API
 type Server struct {
 	sync.RWMutex
 	*http.Server
@@ -25,6 +26,7 @@ type Server struct {
 	Logger               *logger.Logger
 }
 
+// New creates and returns a new API server instance.
 func New(config *config.Config) *Server {
 	srv := &Server{
 		Config:               config,
@@ -33,7 +35,8 @@ func New(config *config.Config) *Server {
 	return srv
 }
 
-// Configure will create the server and register the multiplexer.
+// Configure will create the HTTP server component of the API server
+// and register its multiplexer.
 func (s *Server) Configure() error {
 	mux := http.NewServeMux()
 
@@ -50,7 +53,7 @@ func (s *Server) Configure() error {
 	return nil
 }
 
-// Start will start the http server and start listening fro incoming requests.
+// Start will start the API server.
 func (s *Server) Start(sigchan chan os.Signal) {
 	s.Configure()
 	go func() {
@@ -66,7 +69,7 @@ func (s *Server) Start(sigchan chan os.Signal) {
 // when Server.Shutdown() is called since the latter will not take care of closing
 // hijacked connections such as websocket's.
 func (s *Server) Stop() error {
-
+	// TODO implement
 	return nil
 }
 
