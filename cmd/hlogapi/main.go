@@ -7,7 +7,6 @@ import (
 	"syscall"
 
 	"github.com/hyperbolicresearch/hlog/config"
-	"github.com/hyperbolicresearch/hlog/utils"
 	v1 "github.com/hyperbolicresearch/hlog/web/api/v1"
 )
 
@@ -24,10 +23,12 @@ func main() {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Launching the livetail. But why ???
-	// utils.Livetail is basically a Kafka consumer which reads messages
-	// as they arrive to the system.
-	go utils.LiveTail(cfg.Livetail, sigchan)
+	// Spinning up the components needed for livetailing and
+	// the metrics/observables.
+	livetail := v1.NewLiveTail(cfg.APIv1)
+	observablestail := v1.NewObservablesTail(cfg)
+	go livetail.Start(sigchan)
+	go observablestail.Start(sigchan)
 
 	log.Println("hlogAPI up and running...")
 	server := v1.New(cfg)

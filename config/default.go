@@ -16,7 +16,7 @@ var (
 		ClickHouse: &DefaultClickHouseConfig,
 		Livetail:   &DefaultLivetailConfig,
 		Simulator:  &DefaultSimulatorConfig,
-		API:        &DefaultAPIConfig,
+		APIv1:        &DefaultAPIConfig,
 	}
 
 	// DefaultKafkaConfig is the default kafka configuration.
@@ -91,7 +91,7 @@ var (
 		MessageLength:   7,
 	}
 
-	DefaultAPIConfig = API{
+	DefaultAPIConfig = APIv1{
 		ServerAddr: "localhost:1542",
 	}
 )

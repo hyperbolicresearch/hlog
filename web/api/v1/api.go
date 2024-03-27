@@ -21,16 +21,17 @@ import (
 type Server struct {
 	sync.RWMutex
 	*http.Server
-	Config               *config.Config
-	WebsocketConnections []*websocket.Conn
-	Logger               *logger.Logger
+	Config                       *config.Config
+	LiveTailWebsocketConnections []*websocket.Conn
+	MetricsWebsocketConnections  []*websocket.Conn // TODO: Maybe we can just use one ????
+	Logger                       *logger.Logger
 }
 
 // New creates and returns a new API server instance.
 func New(config *config.Config) *Server {
 	srv := &Server{
-		Config:               config,
-		WebsocketConnections: make([]*websocket.Conn, 0, config.Livetail.MaxWebsocketConnections),
+		Config:                       config,
+		LiveTailWebsocketConnections: make([]*websocket.Conn, 0, config.Livetail.MaxWebsocketConnections),
 	}
 	return srv
 }
@@ -42,12 +43,12 @@ func (s *Server) Configure() error {
 
 	mux.Handle("/live", websocket.Handler(s.HandleLive))
 	mux.Handle("/liveinit", http.HandlerFunc(s.HandleLiveInit))
-	mux.Handle("/genericobservables", http.HandlerFunc(s.HandleGenObservables))
+	mux.Handle("/genericobservables", websocket.Handler(s.HandleGenObservables))
 	mux.Handle("/observe/{observable_id}", http.HandlerFunc(s.HandleObserve))
 	mux.Handle("/info", http.HandlerFunc(s.HandleInfo))
 
 	s.Server = &http.Server{
-		Addr:    s.Config.API.ServerAddr,
+		Addr:    s.Config.APIv1.ServerAddr,
 		Handler: mux,
 	}
 	return nil
@@ -78,7 +79,7 @@ func (s *Server) Stop() error {
 func (s *Server) HandleLive(ws *websocket.Conn) {
 	// If the websocket connection is already in, move on
 	s.RLock()
-	for _, v := range s.WebsocketConnections {
+	for _, v := range s.LiveTailWebsocketConnections {
 		if v == ws {
 			s.RUnlock()
 			return
@@ -87,20 +88,17 @@ func (s *Server) HandleLive(ws *websocket.Conn) {
 	s.RUnlock()
 
 	s.Lock()
-	s.WebsocketConnections = append(s.WebsocketConnections, ws)
+	s.LiveTailWebsocketConnections = append(s.LiveTailWebsocketConnections, ws)
 	s.Unlock()
 
 	buf := make([]byte, 1024)
 	for {
 		_, err := ws.Read(buf)
-		if err := s.Config.Livetail.Logger.AddWriter(ws); err != nil {
-			panic(err)
-		}
 		if err == io.EOF {
 			s.Lock()
-			for i, v := range s.WebsocketConnections {
+			for i, v := range s.LiveTailWebsocketConnections {
 				if v == ws {
-					s.WebsocketConnections = append(s.WebsocketConnections[:i], s.WebsocketConnections[i+1:]...)
+					s.LiveTailWebsocketConnections = append(s.LiveTailWebsocketConnections[:i], s.LiveTailWebsocketConnections[i+1:]...)
 				}
 			}
 			s.Unlock()
@@ -108,6 +106,9 @@ func (s *Server) HandleLive(ws *websocket.Conn) {
 				panic(err)
 			}
 			break
+		}
+		if err := s.Config.Livetail.Logger.AddWriter(ws); err != nil {
+			panic(err)
 		}
 	}
 }
@@ -169,8 +170,29 @@ func (s *Server) HandleLiveInit(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleGenObservables returns the general observables for the dashboard.
-func (s *Server) HandleGenObservables(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleGenObservables(ws *websocket.Conn) {
+	// If the conn is already there, move on
+	s.RLock()
+	for _, v := range s.MetricsWebsocketConnections {
+		if v == ws {
+			s.RUnlock()
+			return
+		}
+	}
+	s.RUnlock()
 
+	s.Lock()
+	s.MetricsWebsocketConnections = append(s.MetricsWebsocketConnections, ws)
+	s.Unlock()
+
+	buf := make([]byte, 1024)
+	for {
+		if _, err := ws.Read(buf); err != nil {
+			if err == io.EOF {
+				
+			}
+		}
+	}
 }
 
 // TODO -----------------------------------------------------------------

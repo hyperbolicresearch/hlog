@@ -16,7 +16,7 @@ type Config struct {
 	*ClickHouse
 	*Livetail
 	*Simulator
-	*API
+	*APIv1
 }
 
 // Kafka holds the configuration for Kafka
@@ -76,6 +76,42 @@ type Simulator struct {
 	MessageLength   int
 }
 
-type API struct {
+// API contains the configurations for the API
+type APIv1 struct {
+	// ServerAddr is the address on which the API is listening
 	ServerAddr string
+	
+	
+	// Livetail configurations ___________________________________________
+	
+	// LivetailLogger writes the livetail logs
+	LivetailLogger *logger.Logger
+	// MaxLiveTailWebsocketConnections is the number of concurrent readers
+	// of v1.LiveTail
+	MaxLiveTailWebsocketConnections int
+	KafkaTopics                     []string
+	KafkaConfigs                    Kafka
+	ConsumeInterval                 time.Duration
+	DefaultLevel                    logger.Level
+	// InitLogsLoadedCount is the number of logs to load on the fly before
+	// starting the livetailing process
+	InitLogsLoadedCount int
+	
+	
+	// ObservablesTail configurations ____________________________________
+	
+	// GeneralObservablesLogger writes the general observable metrics
+	GeneralObservablesLogger *logger.Logger
+	// MaxGenObsWebsocketConnections is the number of concurrent
+	// readers of v1.GeneralObservables
+	MaxGenObsWebsocketConnections int
+	// PushInterval determines how often to push updated versions of
+	// the GeneralObservables
+	PushInterval time.Duration
+	// SendGeneralObservables determines whether or not to send the
+	// v1.GeneralObservables
+	SendGeneralObservables bool
+	// SendGeneralSystemObservables determines whether or not to send the
+	// v1.CustomObservables
+	SendGeneralSystemObservables bool
 }

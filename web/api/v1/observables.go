@@ -2,10 +2,13 @@ package v1
 
 import (
 	"context"
+	"os"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/hyperbolicresearch/hlog/config"
 	"github.com/hyperbolicresearch/hlog/internal/mongodb"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 // GeneralObservables are the metrics that are generic for logs
@@ -84,10 +87,14 @@ func GetMongoDBGeneralObservables(cfg *config.MongoDB) *GeneralObservables {
 		// We add (if not exists) new senders to the list of senders
 		for _, sender := range distinctSenderIdValues {
 			sender_ := sender.(string)
+			found := false
 			for _, countedSender := range senders {
 				if countedSender == sender_ {
-					continue
+					found = true
+					break
 				}
+			}
+			if !found {
 				senders = append(senders, sender_)
 			}
 		}
@@ -125,11 +132,15 @@ func GetMongoDBGeneralObservables(cfg *config.MongoDB) *GeneralObservables {
 		// We add (if not exists) new senders to the list of levels
 		for _, level := range distinctLevelValues {
 			level_ := level.(string)
-			for _, countedLevel := range senders {
+			found := false
+			for _, countedLevel := range levels {
 				if countedLevel == level_ {
-					continue
+					found = true
+					break
 				}
-				levels = append(senders, level_)
+			}
+			if !found {
+				levels = append(levels, level_)
 			}
 		}
 		for _, level := range distinctLevelValues {
@@ -170,7 +181,55 @@ func GetMongoDBGeneralObservables(cfg *config.MongoDB) *GeneralObservables {
 		LogsPerSender:     logsPerSender,
 		LogsPerLevel:      logsPerLevel,
 		SendersCount:      int64(len(senders)),
+		LevelsCount:       int64(len(levels)),
 		TotalIngestedLogs: totalIngestedLogs,
 	}
 	return genObs
+}
+
+// ObservablesTail is the data structure that pushes the different
+// types of Observables to the Observer.
+type ObservablesTail struct {
+	config *config.Config
+}
+
+// NewObservablesTail creates a new ObservablesTail instance
+func NewObservablesTail(cfg *config.Config) *ObservablesTail {
+	// NOTE: The system is now running only with MongoDB, and therefore,
+	// there is no rush to make this work with different DBs yet.
+	// But in the future, we should define a way to determine
+	// how it will choose the observables.
+
+	return &ObservablesTail{
+		config: cfg,
+	}
+}
+
+// Start will start periodically computing the observables and
+// consequently push the observables through their respective loggers.
+func (o *ObservablesTail) Start(sig chan os.Signal) error {
+	ticker := time.NewTicker(o.config.APIv1.PushInterval)
+	run := true
+	for run {
+		select {
+		case <-sig:
+			// Handle closing here
+			run = false
+			return nil
+		case <-ticker.C:
+			// At each push interval, we leverage the logger's ability
+			// to write to io.Writer to actually broadcast the observables
+			// to all the listeners aka websocket connections.
+			// NOTE: These connections are manage by the API's endpoints.
+			if o.config.SendGeneralObservables {
+				genObs := GetMongoDBGeneralObservables(o.config.MongoDB)
+				err := o.config.APIv1.GeneralObservablesLogger.Log(genObs)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+	}
+	return nil
 }
