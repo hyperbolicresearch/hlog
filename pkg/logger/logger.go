@@ -71,7 +71,7 @@ func (l *Logger) AddWriter(w io.Writer) error {
 }
 
 // RemoveWriter removes a writer from the logger
-func (l *Logger) RemoveWriter(w io.Writer) error { 
+func (l *Logger) RemoveWriter(w io.Writer) error {
 	l.Lock()
 	for i, v := range l.Writers {
 		if v == w {
@@ -79,7 +79,7 @@ func (l *Logger) RemoveWriter(w io.Writer) error {
 		}
 	}
 	l.Unlock()
-	return nil 
+	return nil
 }
 
 // Log will take a Log and write it in a readable/formatted manner
@@ -145,6 +145,18 @@ func (l *Logger) Log(data interface{}) error {
 			if err != nil {
 				return err
 			}
+			_, err = l.Write([]byte(js))
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	default:
+		js, err := json.Marshal(data)
+		if err != nil {
+			return err
+		}
+		for _, l := range l.Writers {
 			_, err = l.Write([]byte(js))
 			if err != nil {
 				return err

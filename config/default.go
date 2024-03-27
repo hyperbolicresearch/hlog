@@ -16,7 +16,7 @@ var (
 		ClickHouse: &DefaultClickHouseConfig,
 		Livetail:   &DefaultLivetailConfig,
 		Simulator:  &DefaultSimulatorConfig,
-		APIv1:        &DefaultAPIConfig,
+		APIv1:      &DefaultAPIConfig,
 	}
 
 	// DefaultKafkaConfig is the default kafka configuration.
@@ -92,6 +92,23 @@ var (
 	}
 
 	DefaultAPIConfig = APIv1{
-		ServerAddr: "localhost:1542",
+		ServerAddr:                      "localhost:1542",
+		LivetailLogger:                  logger.New(logger.DEBUG, os.Stdout),
+		MaxLiveTailWebsocketConnections: 10,
+		KafkaTopics:                     []string{"default"},
+		KafkaConfigs: Kafka{
+			Server:           "0.0.0.0:65007",
+			GroupId:          "hlog-livetail-default",
+			AutoOffsetReset:  "earliest",
+			EnableAutoCommit: true,
+		},
+		ConsumeInterval:               time.Duration(100) * time.Millisecond,
+		DefaultLevel:                  logger.DEBUG,
+		InitLogsLoadedCount:           100,
+		GeneralObservablesLogger:      logger.New(logger.DEBUG, os.Stdout),
+		MaxGenObsWebsocketConnections: 10,
+		PushInterval:                  time.Duration(5) * time.Second,
+		SendGeneralObservables:        true,
+		SendGeneralSystemObservables:  true,
 	}
 )

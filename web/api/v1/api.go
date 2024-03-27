@@ -14,24 +14,23 @@ import (
 	"github.com/hyperbolicresearch/hlog/config"
 	"github.com/hyperbolicresearch/hlog/internal/core"
 	"github.com/hyperbolicresearch/hlog/internal/kafkaservice"
-	"github.com/hyperbolicresearch/hlog/pkg/logger"
 )
 
 // Server is the server that runs and exposes the API
 type Server struct {
 	sync.RWMutex
 	*http.Server
-	Config                       *config.Config
-	LiveTailWebsocketConnections []*websocket.Conn
-	MetricsWebsocketConnections  []*websocket.Conn // TODO: Maybe we can just use one ????
-	Logger                       *logger.Logger
+	config                       *config.APIv1
+	liveTailWebsocketConnections []*websocket.Conn
+	genObsWebsocketConnections   []*websocket.Conn // TODO: Maybe we can just use one ????
 }
 
 // New creates and returns a new API server instance.
-func New(config *config.Config) *Server {
+func New(config *config.APIv1) *Server {
 	srv := &Server{
-		Config:                       config,
-		LiveTailWebsocketConnections: make([]*websocket.Conn, 0, config.Livetail.MaxWebsocketConnections),
+		config:                       config,
+		liveTailWebsocketConnections: make([]*websocket.Conn, 0, config.MaxLiveTailWebsocketConnections),
+		genObsWebsocketConnections:   make([]*websocket.Conn, 0, config.MaxGenObsWebsocketConnections),
 	}
 	return srv
 }
@@ -48,7 +47,7 @@ func (s *Server) Configure() error {
 	mux.Handle("/info", http.HandlerFunc(s.HandleInfo))
 
 	s.Server = &http.Server{
-		Addr:    s.Config.APIv1.ServerAddr,
+		Addr:    s.config.ServerAddr,
 		Handler: mux,
 	}
 	return nil
@@ -79,7 +78,7 @@ func (s *Server) Stop() error {
 func (s *Server) HandleLive(ws *websocket.Conn) {
 	// If the websocket connection is already in, move on
 	s.RLock()
-	for _, v := range s.LiveTailWebsocketConnections {
+	for _, v := range s.liveTailWebsocketConnections {
 		if v == ws {
 			s.RUnlock()
 			return
@@ -88,7 +87,7 @@ func (s *Server) HandleLive(ws *websocket.Conn) {
 	s.RUnlock()
 
 	s.Lock()
-	s.LiveTailWebsocketConnections = append(s.LiveTailWebsocketConnections, ws)
+	s.liveTailWebsocketConnections = append(s.liveTailWebsocketConnections, ws)
 	s.Unlock()
 
 	buf := make([]byte, 1024)
@@ -96,18 +95,20 @@ func (s *Server) HandleLive(ws *websocket.Conn) {
 		_, err := ws.Read(buf)
 		if err == io.EOF {
 			s.Lock()
-			for i, v := range s.LiveTailWebsocketConnections {
+			for i, v := range s.liveTailWebsocketConnections {
 				if v == ws {
-					s.LiveTailWebsocketConnections = append(s.LiveTailWebsocketConnections[:i], s.LiveTailWebsocketConnections[i+1:]...)
+					s.liveTailWebsocketConnections = append(
+						s.liveTailWebsocketConnections[:i],
+						s.liveTailWebsocketConnections[i+1:]...)
 				}
 			}
 			s.Unlock()
-			if err := s.Config.Livetail.Logger.RemoveWriter(ws); err != nil {
+			if err := s.config.LivetailLogger.RemoveWriter(ws); err != nil {
 				panic(err)
 			}
 			break
 		}
-		if err := s.Config.Livetail.Logger.AddWriter(ws); err != nil {
+		if err := s.config.LivetailLogger.AddWriter(ws); err != nil {
 			panic(err)
 		}
 	}
@@ -121,7 +122,7 @@ func (s *Server) HandleLiveInit(w http.ResponseWriter, r *http.Request) {
 	// commit messages, since we want to read and reread each time, we also
 	// want to start reading from the tail (latest)
 	kafkaConfig := config.Kafka{
-		Server:           s.Config.Livetail.KafkaConfigs.Server,
+		Server:           s.config.KafkaConfigs.Server,
 		GroupId:          "hlog-livetail-init-default",
 		AutoOffsetReset:  "latest",
 		EnableAutoCommit: false,
@@ -134,7 +135,7 @@ func (s *Server) HandleLiveInit(w http.ResponseWriter, r *http.Request) {
 
 	err = kw.Consumer.Assign(
 		[]kafka.TopicPartition{{
-			Topic:     &s.Config.Livetail.KafkaTopics[0],
+			Topic:     &s.config.KafkaTopics[0],
 			Partition: 0,
 			// TODO: Fix this, it should not be hardcoded
 			Offset: kafka.OffsetTail(100),
@@ -145,8 +146,8 @@ func (s *Server) HandleLiveInit(w http.ResponseWriter, r *http.Request) {
 
 	// TODO benchmark this to evaluate how the marshalling and
 	// the unmarshallign penalize the process in term of performance.
-	values := make([]*core.Log, 0, s.Config.Livetail.InitLogsLoadedCount)
-	for i := 0; i < s.Config.Livetail.InitLogsLoadedCount; i++ {
+	values := make([]*core.Log, 0, s.config.InitLogsLoadedCount)
+	for i := 0; i < s.config.InitLogsLoadedCount; i++ {
 		msg, err := kw.Consumer.ReadMessage(-1)
 		if err != nil {
 			panic(err)
@@ -173,7 +174,7 @@ func (s *Server) HandleLiveInit(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleGenObservables(ws *websocket.Conn) {
 	// If the conn is already there, move on
 	s.RLock()
-	for _, v := range s.MetricsWebsocketConnections {
+	for _, v := range s.genObsWebsocketConnections {
 		if v == ws {
 			s.RUnlock()
 			return
@@ -182,15 +183,31 @@ func (s *Server) HandleGenObservables(ws *websocket.Conn) {
 	s.RUnlock()
 
 	s.Lock()
-	s.MetricsWebsocketConnections = append(s.MetricsWebsocketConnections, ws)
+	s.genObsWebsocketConnections = append(s.genObsWebsocketConnections, ws)
 	s.Unlock()
 
 	buf := make([]byte, 1024)
 	for {
 		if _, err := ws.Read(buf); err != nil {
 			if err == io.EOF {
-				
+				s.Lock()
+				for i, v := range s.genObsWebsocketConnections {
+					if v == ws {
+						s.genObsWebsocketConnections = append(
+							s.genObsWebsocketConnections[:i],
+							s.genObsWebsocketConnections[i+1:]...)
+					}
+				}
+				s.Unlock()
+				err := s.config.GeneralObservablesLogger.RemoveWriter(ws)
+				if err != nil {
+					panic(err)
+				}
+				break
 			}
+		}
+		if err := s.config.GeneralObservablesLogger.AddWriter(ws); err != nil {
+			panic(err)
 		}
 	}
 }

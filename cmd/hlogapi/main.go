@@ -31,6 +31,6 @@ func main() {
 	go observablestail.Start(sigchan)
 
 	log.Println("hlogAPI up and running...")
-	server := v1.New(cfg)
+	server := v1.New(cfg.APIv1)
 	server.Start(sigchan)
 }

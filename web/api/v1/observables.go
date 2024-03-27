@@ -199,7 +199,6 @@ func NewObservablesTail(cfg *config.Config) *ObservablesTail {
 	// there is no rush to make this work with different DBs yet.
 	// But in the future, we should define a way to determine
 	// how it will choose the observables.
-
 	return &ObservablesTail{
 		config: cfg,
 	}
@@ -225,7 +224,7 @@ func (o *ObservablesTail) Start(sig chan os.Signal) error {
 				genObs := GetMongoDBGeneralObservables(o.config.MongoDB)
 				err := o.config.APIv1.GeneralObservablesLogger.Log(genObs)
 				if err != nil {
-					return err
+					panic(err)
 				}
 			}
 		}
