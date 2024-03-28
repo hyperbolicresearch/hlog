@@ -65,9 +65,9 @@ func (s *Server) Start(sigchan chan os.Signal) {
 	<-sigchan
 }
 
-// Stop should stop all opened websocket connections. It is intended to be called
-// when Server.Shutdown() is called since the latter will not take care of closing
-// hijacked connections such as websocket's.
+// Stop should stop all opened websocket connections. It is intended to 
+// be called when Server.Shutdown() is called since the latter will not
+// take care of closing hijacked connections such as websocket's.
 func (s *Server) Stop() error {
 	// TODO implement
 	return nil

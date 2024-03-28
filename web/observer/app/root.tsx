@@ -19,6 +19,7 @@ import {
   Cog6ToothIcon,
   RectangleStackIcon,
   BellIcon,
+  BookOpenIcon,
 } from "@heroicons/react/24/outline"
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -92,7 +93,8 @@ export function SideBar() {
     {to: "/dashboard", title: "Dashboard", icon: <ChartPieIcon width={22}/>},
     {to: "/live", title: "Live tail", icon: <QueueListIcon width={22}/>},
     {to: "/metrics", title: "Metrics", icon: <ChartBarSquareIcon width={22}/>},
-    {to: "/functions", title: "Functions", icon: <BoltIcon width={22}/>}
+    {to: "/functions", title: "Functions", icon: <BoltIcon width={22}/>},
+    {to: "/resources", title: "Resources", icon: <BookOpenIcon width={22}/>},
   ]
 
   const administrative_menu = [

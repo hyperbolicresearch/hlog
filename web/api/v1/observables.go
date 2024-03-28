@@ -15,14 +15,14 @@ import (
 // to be monitored. They are mostly about metadata that accompany
 // the logs and are by default monitored by the system.
 type GeneralObservables struct {
-	ChannelsCount     int64
-	LogsPerChannel    map[string]int64
-	LogsPerSender     map[string]int64
-	LogsPerLevel      map[string]int64
-	SendersCount      int64
-	LevelsCount       int64
-	TotalIngestedLogs int64
-	ThroughputPerTime []int64
+	ChannelsCount     int64            `json:"channels_count"`
+	LogsPerChannel    map[string]int64 `json:"logs_per_channel"`
+	LogsPerSender     map[string]int64 `json:"logs_per_sender"`
+	LogsPerLevel      map[string]int64 `json:"logs_per_level"`
+	SendersCount      int64            `json:"senders_count"`
+	LevelsCount       int64            `json:"levels_count"`
+	TotalIngestedLogs int64            `json:"total_ingested_logs"`
+	ThroughputPerTime []int64          `json:"throughput_per_time"`
 }
 
 // GeneralSystemObservables are metrics that are related to the
