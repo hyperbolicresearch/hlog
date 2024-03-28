@@ -154,7 +154,7 @@ export default function Index() {
               <p className="text-white text-5xl">
                 {genObs.total_ingested_logs[genObs.total_ingested_logs.length - 1] || 0}
               </p>
-            <div className="w-[70%]">
+            <div className="w-[60%]">
               <Line 
                 options={line_options} 
                 data={log_ingested_logs_data}

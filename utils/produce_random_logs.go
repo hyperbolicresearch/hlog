@@ -5,12 +5,10 @@ import (
 	"log"
 	"math/rand"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/google/uuid"
-	randomstring "github.com/xyproto/randomstring"
 
 	"github.com/hyperbolicresearch/hlog/config"
 	"github.com/hyperbolicresearch/hlog/internal/core"
@@ -43,7 +41,7 @@ func GenerateRandomLogs(cfg *config.Config, stop chan os.Signal) {
 		}
 	}()
 
-	ticker := time.NewTicker(time.Second * time.Duration(2))
+	ticker := time.NewTicker(time.Second * time.Duration(1))
 	run := true
 	for run {
 		select {
@@ -51,8 +49,8 @@ func GenerateRandomLogs(cfg *config.Config, stop chan os.Signal) {
 			ticker.Stop()
 			run = false
 		case <-ticker.C:
-			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-			amount := rnd.Intn(50)
+			// rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+			amount := 10000  // rnd.Intn(200)
 			for range amount {
 				go Generate(producer, cfg)
 			}
@@ -92,26 +90,20 @@ func Generate(kafkaProducer *kafka.Producer, cfg *config.Config) {
 	}
 	level := levels[index]
 
-	message := ""
-	foo := ""
-	bar := ""
-	for i := 0; i < cfg.Simulator.MessageLength; i++ {
-		word := randomstring.HumanFriendlyEnglishString(7) + " "
-		wfoo := randomstring.HumanFriendlyEnglishString(7) + " "
-		wbar := randomstring.HumanFriendlyEnglishString(7) + " "
-		message += word
-		foo += wfoo
-		bar += wbar
-	}
-	message = strings.TrimSpace(message)
+	// message := generateRandomWords(2)
+	// foo := generateRandomWords(1)
+	// bar := generateRandomWords(1)
+	message := "Lorem ipsum dolor sit amet, consectetur adipiscing"
+	foo := "Lorem foo"
+	bar := "Ipsum bar"
 
 	data := map[string]interface{}{
-		"foo":   foo,
-		"bar":   bar,
-		"count": index,
+		"foo":       foo,
+		"bar":       bar,
+		"count":     index,
 		"firstname": "John",
-		"lastname": "Doe",
-		"company": "Acme Inc.",
+		"lastname":  "Doe",
+		"company":   "Acme Inc.",
 	}
 
 	sendableLog := core.Log{
@@ -135,3 +127,13 @@ func Generate(kafkaProducer *kafka.Producer, cfg *config.Config) {
 		Value: []byte(value),
 	}, nil)
 }
+
+// func generateRandomWords(n int) string {
+// 	babbler := babble.NewBabbler()
+// 	babbler.Count = n
+// 	randomWords := ""
+// 	for i := 0; i < n; i++ {
+// 		randomWords += babbler.Babble() + " "
+// 	}
+// 	return strings.TrimSpace(randomWords)
+// }

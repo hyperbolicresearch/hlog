@@ -9,8 +9,14 @@ require (
 	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
+	github.com/tjarratt/babble v0.0.0-20210505082055-cbca2a4833c1
 	github.com/xyproto/randomstring v1.0.5
 	go.mongodb.org/mongo-driver v1.14.0
+)
+
+require (
+	github.com/onsi/ginkgo v1.16.5 // indirect
+	github.com/onsi/gomega v1.32.0 // indirect
 )
 
 require (
