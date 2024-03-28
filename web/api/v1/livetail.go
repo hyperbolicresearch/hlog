@@ -59,7 +59,7 @@ func (l *LiveTail) Start(sig chan os.Signal) error {
 			// to the Websocket connections.
 			// NOTE: The websocket connections are actually added to the
 			// logger by the API server's endpoints.
-			err = l.config.LivetailLogger.Log(l)
+			err = l.config.LivetailLogger.Log(log)
 			if err != nil {
 				return err
 			}

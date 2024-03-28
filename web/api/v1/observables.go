@@ -207,6 +207,11 @@ func NewObservablesTail(cfg *config.Config) *ObservablesTail {
 // Start will start periodically computing the observables and
 // consequently push the observables through their respective loggers.
 func (o *ObservablesTail) Start(sig chan os.Signal) error {
+	// TODO: Store the last emitted metrics, and don't send new metrics
+	// if there is no change (unless asked for. It's complex since we
+    // we have to make sure we don't skip spending to newcomers and
+    // listeners that may have lost it)
+	
 	ticker := time.NewTicker(o.config.APIv1.PushInterval)
 	run := true
 	for run {

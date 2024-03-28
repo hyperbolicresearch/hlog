@@ -120,8 +120,13 @@ func (m *MongoDBIngester) Sink(msg *kafka.Message) error {
 		panic(err)
 	}
 
+	_, err = m.KafkaWorker.Consumer.CommitMessage(msg)
+	if err != nil {
+		panic(err)
+	}
+
 	// Produce to m.TopicCallback if any.
-	// TODO : Probably export to a separate function ???
+	// TODO : WE DONT NEED THIS, REMOVE THIS
 	if m.TopicCallback != "" {
 		m.KafkaWorker.Lock()
 		m.KafkaWorker.Producer.Produce(&kafka.Message{

@@ -90,7 +90,7 @@ export default function Index() {
 
   const line_options = {
     responsive: true,
-    aspectRatio: 7,
+    aspectRatio: 6,
     maintainAspectRatio: true,
     plugins: {
       legend: { display: false, },
@@ -102,7 +102,7 @@ export default function Index() {
     scales: {
       x: { display: false },
       y: { 
-        // display: false, 
+        display: false, 
         // beginAtZero: true,
       },
   }
@@ -150,11 +150,11 @@ export default function Index() {
         {/* total_ingested_logs */}
         <article className="text-white bg-black p-3 rounded-lg h-full flex-1 flex flex-col justify-between">
           <p className="text-[#86898D] text-sm">Total ingested logs</p>
-          <div className="flex items-end justify-between gap-16 h-auto">
-              <p className="text-white text-5xl w-[15%]">
+          <div className="flex items-end justify-between h-auto">
+              <p className="text-white text-5xl">
                 {genObs.total_ingested_logs[genObs.total_ingested_logs.length - 1] || 0}
               </p>
-            <div className="flex-1">
+            <div className="w-[70%]">
               <Line 
                 options={line_options} 
                 data={log_ingested_logs_data}

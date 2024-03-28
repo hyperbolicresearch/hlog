@@ -103,7 +103,7 @@ export function SideBar() {
   ]
 
   return (
-    <div className="w-[18rem] px-6 py-4 h-full bg-[#F3F5F6]">
+    <div className="w-[18rem] min-w-[18rem] px-6 py-4 h-full bg-[#F3F5F6]">
       <div className="flex gap-2 items-center mb-12">
         <img 
           src="hlog_logo.png"

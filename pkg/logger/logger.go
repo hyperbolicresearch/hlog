@@ -156,6 +156,14 @@ func (l *Logger) Log(data interface{}) error {
 			return err
 		}
 		for _, l := range l.Writers {
+			if _, ok := l.(*os.File); ok {
+				js = append(js, '\n')
+				_, err = l.Write([]byte(js))
+				if err != nil {
+					return err
+				}
+				continue
+			}
 			_, err = l.Write([]byte(js))
 			if err != nil {
 				return err

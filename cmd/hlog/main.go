@@ -6,17 +6,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/joho/godotenv"
-
 	"github.com/hyperbolicresearch/hlog/config"
 	"github.com/hyperbolicresearch/hlog/internal/ingest"
+	v1 "github.com/hyperbolicresearch/hlog/web/api/v1"
 )
-
-func init() {
-	if err := godotenv.Load(); err != nil {
-		panic("No .env file found")
-	}
-}
 
 func main() {
 	log.Println("Hlog engine started...")
@@ -30,6 +23,17 @@ func main() {
 	if err != nil {
 		cfg = &config.DefaultConfig
 	}
+
+	// Spinning up the components needed for livetailing and
+	// the metrics/observables.
+	livetail := v1.NewLiveTail(cfg.APIv1)
+	observablestail := v1.NewObservablesTail(cfg)
+	go livetail.Start(sigchan)
+	go observablestail.Start(sigchan)
+
+	// Start the API that is serves the observers
+	apiServer := v1.New(cfg.APIv1)
+	go apiServer.Start(sigchan)
 
 	// We then start the ingesting processes in MongoDB and in ClickHouse.
 	mongodbIngester := ingest.NewMongoDBIngester(cfg)

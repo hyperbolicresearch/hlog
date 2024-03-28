@@ -80,7 +80,10 @@ export default function Live() {
     };
     socket.onmessage = (event) => {
       const _data = JSON.parse(event.data);
-      setLogs((logs) => [_data, ...logs]);
+      console.log(_data)
+      if (Object.keys(_data).length > 0 ) {
+        setLogs((logs) => [_data, ...logs]);
+      }
     };
 
     return () => {
@@ -196,6 +199,7 @@ export default function Live() {
           >
             <DocumentIcon width={20} height={20} color="#86898D" />
             <p className="text-sm w-[20%] text-[#86898D]">{new Date(log.timestamp * 1000).toISOString()}</p>
+            {/* <p className="text-sm w-[20%] text-[#86898D]">{log.timestamp}</p> */}
             <p className="text-sm w-[10%] line-clamp-1 font-medium">{log.channel}</p>
             <p className="text-sm w-[5%] text-[#1C65F4] font-medium">{log.level}</p>
             <p className="text-sm w-[30%] text-[#1E1E1E] line-clamp-1">{log.message}</p>

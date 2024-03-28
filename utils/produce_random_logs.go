@@ -43,7 +43,7 @@ func GenerateRandomLogs(cfg *config.Config, stop chan os.Signal) {
 		}
 	}()
 
-	ticker := time.NewTicker(time.Second * time.Duration(5))
+	ticker := time.NewTicker(time.Second * time.Duration(2))
 	run := true
 	for run {
 		select {
@@ -51,7 +51,11 @@ func GenerateRandomLogs(cfg *config.Config, stop chan os.Signal) {
 			ticker.Stop()
 			run = false
 		case <-ticker.C:
-			go Generate(producer, cfg)
+			rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+			amount := rnd.Intn(50)
+			for range amount {
+				go Generate(producer, cfg)
+			}
 		}
 	}
 }
