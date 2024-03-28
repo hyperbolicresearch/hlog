@@ -97,7 +97,7 @@ export default function Index() {
       title: { display: false, }
     },
     elements: {
-      point:{ radius: 1, }
+      point:{ radius: 0, }
     },
     scales: {
       x: { display: false },
