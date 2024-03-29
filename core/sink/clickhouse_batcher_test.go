@@ -78,7 +78,7 @@ func TestSink(t *testing.T) {
 		conn.Exec(context.Background(), "DROP TABLE IF EXISTS test_table")
 	}()
 	// batcher: initialializing
-	batcher := BatcherWorker{
+	batcher := ClickHouseBatcherWorker{
 		Conn: conn,
 	}
 	t.Run(test.name, func(t *testing.T) {
