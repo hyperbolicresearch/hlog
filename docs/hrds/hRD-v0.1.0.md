@@ -1,5 +1,9 @@
 # hRD-v0.1.0
 
+Here is a visual representation of the proposed architecture for this release.
+
+![Architecture](/docs/hrds/assets/hRD-v0.1.0-architecture.jpg)
+
 This release should include an end-to-end experience with the following characteristics:
 
 1. A set of **collectors** for the languages Python, TS/JS, Go and Rust that are fully tested which support the **transport** Kafka..

@@ -1,5 +1,3 @@
-![Web look](https://github.com/hyperbolicresearch/hlog/blob/dev/assets/github_img.png)
-
 > This project is under massive development and can undergo changes in the conceptual framework and implementation. We are just conducting experimentations, just thinking loud until otherwise said.
 
 ## Overview
