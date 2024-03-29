@@ -1,3 +1,5 @@
+// We will stop writing to stdout for now. We probably should
+// change that later if necessary.
 package logger
 
 import (
@@ -90,6 +92,9 @@ func (l *Logger) Log(data interface{}) error {
 	case []byte:
 		data = append(data, '\n')
 		for _, l := range l.Writers {
+			if _, ok := l.(*os.File); ok {
+				continue
+			}
 			_, err := l.Write(data)
 			if err != nil {
 				return err
@@ -98,6 +103,9 @@ func (l *Logger) Log(data interface{}) error {
 		return nil
 	case string:
 		for _, l := range l.Writers {
+			if _, ok := l.(*os.File); ok {
+				continue
+			}
 			_, err := l.Write([]byte(data + "\n"))
 			if err != nil {
 				return err
@@ -134,10 +142,10 @@ func (l *Logger) Log(data interface{}) error {
 
 		for _, l := range l.Writers {
 			if _, ok := l.(*os.File); ok {
-				_, err = l.Write([]byte(str))
-				if err != nil {
-					return err
-				}
+				// _, err = l.Write([]byte(str))
+				// if err != nil {
+				// 	return err
+				// }
 				continue
 			}
 			js, err := json.Marshal(data)
@@ -157,11 +165,11 @@ func (l *Logger) Log(data interface{}) error {
 		}
 		for _, l := range l.Writers {
 			if _, ok := l.(*os.File); ok {
-				js = append(js, '\n')
-				_, err = l.Write([]byte(js))
-				if err != nil {
-					return err
-				}
+				// js = append(js, '\n')
+				// _, err = l.Write([]byte(js))
+				// if err != nil {
+				// 	return err
+				// }
 				continue
 			}
 			_, err = l.Write([]byte(js))

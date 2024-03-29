@@ -107,7 +107,7 @@ var (
 		InitLogsLoadedCount:           100,
 		GeneralObservablesLogger:      logger.New(logger.DEBUG, os.Stdout),
 		MaxGenObsWebsocketConnections: 10,
-		PushInterval:                  time.Duration(5) * time.Second,
+		PushInterval:                  time.Duration(1) * time.Second,
 		SendGeneralObservables:        true,
 		SendGeneralSystemObservables:  true,
 	}
