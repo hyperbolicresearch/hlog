@@ -31,3 +31,4 @@ Although useful, those are not part of the core components, but nonetheless, the
 ## Docs
 - [Glossary](/docs/dictionary.md)
 - [hlog Release Descriptions (hRDs)](/docs/hrds/)
+- [hlog Improvements Proposals (hIPs)](/docs/hips/)
