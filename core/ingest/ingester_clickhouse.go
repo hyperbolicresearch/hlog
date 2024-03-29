@@ -25,7 +25,7 @@ import (
 // of data to ClickHouse
 type IngesterWorker struct {
 	sync.RWMutex
-	*sink.BatcherWorker
+	*sink.ClickHouseBatcherWorker
 	*kafkaservice.KafkaWorker
 	MongoDatabase *mongo.Database
 	IsRunning     bool
@@ -80,7 +80,7 @@ func NewClickHouseIngester(cfg *config.Config) *IngesterWorker {
 
 	_i := &IngesterWorker{
 		MongoDatabase: db,
-		BatcherWorker: &sink.BatcherWorker{
+		ClickHouseBatcherWorker: &sink.ClickHouseBatcherWorker{
 			Conn: chConn,
 		},
 		Messages:         &Messages{},

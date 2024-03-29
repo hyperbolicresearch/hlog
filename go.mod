@@ -8,7 +8,6 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.19.0
 	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/google/uuid v1.6.0
-	github.com/joho/godotenv v1.5.1
 	go.mongodb.org/mongo-driver v1.14.0
 	golang.org/x/net v0.21.0
 )
