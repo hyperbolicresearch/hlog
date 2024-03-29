@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/hyperbolicresearch/hlog/config"
-	"github.com/hyperbolicresearch/hlog/internal/core"
+	"github.com/hyperbolicresearch/hlog/internal/logs"
 )
 
 func TestGracefulStop(t *testing.T) {
@@ -25,12 +25,12 @@ func TestGracefulStop(t *testing.T) {
 func TestTransform(t *testing.T) {
 	var tests = []struct {
 		name  string
-		input core.Log
+		input logs.Log
 		want  map[string]interface{}
 	}{
 		{
 			"Data: {foo: 1}",
-			core.Log{
+			logs.Log{
 				Channel:   "testnet",
 				LogId:     "0000-0000-0000-0000-0000",
 				SenderId:  "test-1234",
@@ -66,7 +66,7 @@ func TestTransform(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ingester.Lock()
 			ingester.Messages = &Messages{
-				Data: []*core.Log{&tt.input},
+				Data: []*logs.Log{&tt.input},
 			}
 			ingester.Unlock()
 			_ = ingester.Transform()

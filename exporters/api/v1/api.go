@@ -12,8 +12,8 @@ import (
 	"golang.org/x/net/websocket"
 
 	"github.com/hyperbolicresearch/hlog/config"
-	"github.com/hyperbolicresearch/hlog/internal/core"
-	"github.com/hyperbolicresearch/hlog/internal/kafkaservice"
+	"github.com/hyperbolicresearch/hlog/internal/logs"
+	kafkaservice "github.com/hyperbolicresearch/hlog/transport/kafka"
 )
 
 // Server is the server that runs and exposes the API
@@ -65,7 +65,7 @@ func (s *Server) Start(sigchan chan os.Signal) {
 	<-sigchan
 }
 
-// Stop should stop all opened websocket connections. It is intended to 
+// Stop should stop all opened websocket connections. It is intended to
 // be called when Server.Shutdown() is called since the latter will not
 // take care of closing hijacked connections such as websocket's.
 func (s *Server) Stop() error {
@@ -146,13 +146,13 @@ func (s *Server) HandleLiveInit(w http.ResponseWriter, r *http.Request) {
 
 	// TODO benchmark this to evaluate how the marshalling and
 	// the unmarshallign penalize the process in term of performance.
-	values := make([]*core.Log, 0, s.config.InitLogsLoadedCount)
+	values := make([]*logs.Log, 0, s.config.InitLogsLoadedCount)
 	for i := 0; i < s.config.InitLogsLoadedCount; i++ {
 		msg, err := kw.Consumer.ReadMessage(-1)
 		if err != nil {
 			panic(err)
 		}
-		var l core.Log
+		var l logs.Log
 		if err := json.Unmarshal(msg.Value, &l); err != nil {
 			panic(err)
 		}

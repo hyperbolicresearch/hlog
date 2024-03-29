@@ -7,8 +7,8 @@ import (
 	"syscall"
 
 	"github.com/hyperbolicresearch/hlog/config"
-	"github.com/hyperbolicresearch/hlog/internal/ingest"
-	v1 "github.com/hyperbolicresearch/hlog/web/api/v1"
+	"github.com/hyperbolicresearch/hlog/core/ingest"
+	v1 "github.com/hyperbolicresearch/hlog/exporters/api/v1"
 )
 
 func main() {

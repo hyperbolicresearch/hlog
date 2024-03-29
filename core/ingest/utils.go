@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hyperbolicresearch/hlog/internal/clickhouseservice"
+	clickhouseservice "github.com/hyperbolicresearch/hlog/storage/clickhouse"
 )
 
 // GetStorableData gets a list of transformed messages and return only a list
@@ -26,6 +26,23 @@ func GetStorableData(raw []map[string]interface{}) []map[string]interface{} {
 	return storableData
 }
 
+// SortMap takes a map and returns a sorted version of it.
+func SortMap(m map[string]interface{}) (map[string]interface{}, []string, []interface{}, error) {
+	sortedMap := make(map[string]interface{})
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	sortedValues := []interface{}{}
+	for _, item := range keys {
+		sortedMap[item] = m[item]
+		sortedValues = append(sortedValues, m[item])
+
+	}
+	return sortedMap, keys, sortedValues, nil
+}
+
 // GetDataByChannel transforms a slice of messages and return a
 // map where they are grouped by <_channel>.
 func GetDataByChannel(data []map[string]interface{}) map[string][]map[string]interface{} {
@@ -41,8 +58,6 @@ func GetDataByChannel(data []map[string]interface{}) map[string][]map[string]int
 	}
 	return dataByChannel
 }
-
-type Values string
 
 // GenerateSQLAndApply generates the SQL query for either creating or altering the
 // Clickhouse schema for a given table and makes the given changes to the database.
@@ -87,21 +102,4 @@ func GenerateSQLAndApply(schema map[string]interface{}, table string, isAlter bo
 		return err
 	}
 	return nil
-}
-
-// SortMap takes a map and returns a sorted version of it.
-func SortMap(m map[string]interface{}) (map[string]interface{}, []string, []interface{}, error) {
-	sortedMap := make(map[string]interface{})
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	sortedValues := []interface{}{}
-	for _, item := range keys {
-		sortedMap[item] = m[item]
-		sortedValues = append(sortedValues, m[item])
-
-	}
-	return sortedMap, keys, sortedValues, nil
 }

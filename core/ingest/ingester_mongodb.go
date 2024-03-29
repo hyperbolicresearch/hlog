@@ -13,9 +13,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/hyperbolicresearch/hlog/config"
-	"github.com/hyperbolicresearch/hlog/internal/core"
-	"github.com/hyperbolicresearch/hlog/internal/kafkaservice"
-	"github.com/hyperbolicresearch/hlog/internal/mongodb"
+	"github.com/hyperbolicresearch/hlog/internal/logs"
+	"github.com/hyperbolicresearch/hlog/storage/mongodb"
+	kafkaservice "github.com/hyperbolicresearch/hlog/transport/kafka"
 )
 
 type MongoDBIngester struct {
@@ -107,7 +107,7 @@ func (m *MongoDBIngester) Consume() error {
 }
 
 func (m *MongoDBIngester) Sink(msg *kafka.Message) error {
-	var value core.Log
+	var value logs.Log
 	if err := json.Unmarshal(msg.Value, &value); err != nil {
 		fmt.Printf("Error unmarshalling value %v", err)
 	}

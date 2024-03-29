@@ -1,4 +1,4 @@
-package core
+package logs
 
 type Log struct {
 	Channel   string                 `json:"channel" bason:"channel"`

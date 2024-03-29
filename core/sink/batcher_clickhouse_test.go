@@ -1,11 +1,11 @@
-package ingest
+package sink
 
 import (
 	"context"
 	"testing"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/hyperbolicresearch/hlog/internal/clickhouseservice"
+	clickhouseservice "github.com/hyperbolicresearch/hlog/storage/clickhouse"
 )
 
 func TestSink(t *testing.T) {

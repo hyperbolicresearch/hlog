@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/hyperbolicresearch/hlog/config"
-	"github.com/hyperbolicresearch/hlog/internal/core"
-	"github.com/hyperbolicresearch/hlog/internal/kafkaservice"
+	"github.com/hyperbolicresearch/hlog/internal/logs"
+	kafkaservice "github.com/hyperbolicresearch/hlog/transport/kafka"
 )
 
 // LiveTail is the data structure that manages the process of pushing in
@@ -49,7 +49,7 @@ func (l *LiveTail) Start(sig chan os.Signal) error {
 			if err != nil {
 				continue
 			}
-			var log core.Log
+			var log logs.Log
 			if err := json.Unmarshal(msg.Value, &log); err != nil {
 				// TODO: handle error
 				return err

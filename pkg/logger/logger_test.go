@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/hyperbolicresearch/hlog/internal/core"
+	"github.com/hyperbolicresearch/hlog/internal/logs"
 )
 
 func TestLogger(t *testing.T) {
@@ -15,7 +15,7 @@ func TestLogger(t *testing.T) {
 	// bytes
 	dataBytes := []byte(dataStr)
 	// core.Log
-	log := core.Log{
+	log := logs.Log{
 		Channel:   "channel",
 		LogId:     "0000-0000-0000-0000",
 		SenderId:  "sender_id",

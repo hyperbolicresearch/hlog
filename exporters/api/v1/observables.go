@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/hyperbolicresearch/hlog/config"
-	"github.com/hyperbolicresearch/hlog/internal/mongodb"
+	"github.com/hyperbolicresearch/hlog/storage/mongodb"
 )
 
 // GeneralObservables are the metrics that are generic for logs
@@ -209,9 +209,9 @@ func NewObservablesTail(cfg *config.Config) *ObservablesTail {
 func (o *ObservablesTail) Start(sig chan os.Signal) error {
 	// TODO: Store the last emitted metrics, and don't send new metrics
 	// if there is no change (unless asked for. It's complex since we
-    // we have to make sure we don't skip spending to newcomers and
-    // listeners that may have lost it)
-	
+	// we have to make sure we don't skip spending to newcomers and
+	// listeners that may have lost it)
+
 	ticker := time.NewTicker(o.config.APIv1.PushInterval)
 	run := true
 	for run {

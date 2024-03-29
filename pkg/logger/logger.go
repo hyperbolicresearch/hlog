@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hyperbolicresearch/hlog/internal/core"
+	"github.com/hyperbolicresearch/hlog/internal/logs"
 )
 
 type Level int
@@ -104,7 +104,7 @@ func (l *Logger) Log(data interface{}) error {
 			}
 		}
 		return nil
-	case core.Log:
+	case logs.Log:
 		if levelCorrespondence[data.Level] < l.Level {
 			return nil
 		}

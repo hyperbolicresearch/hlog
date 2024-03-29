@@ -14,17 +14,18 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/hyperbolicresearch/hlog/config"
-	"github.com/hyperbolicresearch/hlog/internal/clickhouseservice"
-	"github.com/hyperbolicresearch/hlog/internal/core"
-	"github.com/hyperbolicresearch/hlog/internal/kafkaservice"
-	"github.com/hyperbolicresearch/hlog/internal/mongodb"
+	"github.com/hyperbolicresearch/hlog/core/sink"
+	"github.com/hyperbolicresearch/hlog/internal/logs"
+	clickhouseservice "github.com/hyperbolicresearch/hlog/storage/clickhouse"
+	"github.com/hyperbolicresearch/hlog/storage/mongodb"
+	kafkaservice "github.com/hyperbolicresearch/hlog/transport/kafka"
 )
 
 // IngesterWorker is responsible the handle the end-to-end dumping
 // of data to ClickHouse
 type IngesterWorker struct {
 	sync.RWMutex
-	*BatcherWorker
+	*sink.BatcherWorker
 	*kafkaservice.KafkaWorker
 	MongoDatabase *mongo.Database
 	IsRunning     bool
@@ -48,7 +49,7 @@ type IngesterWorker struct {
 // written to ClickHouse.
 type Messages struct {
 	sync.RWMutex
-	Data            []*core.Log
+	Data            []*logs.Log
 	TransformedData []map[string]interface{}
 	StorableData    []map[string]interface{}
 }
@@ -79,7 +80,7 @@ func NewClickHouseIngester(cfg *config.Config) *IngesterWorker {
 
 	_i := &IngesterWorker{
 		MongoDatabase: db,
-		BatcherWorker: &BatcherWorker{
+		BatcherWorker: &sink.BatcherWorker{
 			Conn: chConn,
 		},
 		Messages:         &Messages{},
@@ -142,9 +143,9 @@ func (i *IngesterWorker) Consume() {
 			continue
 		}
 		fmt.Printf("%+v\n", string(msg.Value))
-		var l core.Log
+		var l logs.Log
 		if err := json.Unmarshal(msg.Value, &l); err != nil {
-			 panic(fmt.Errorf("error unmarshalling value %v: %v", msg.Value, err))
+			panic(fmt.Errorf("error unmarshalling value %v: %v", msg.Value, err))
 		}
 		i.Messages.Lock()
 		i.Messages.Data = append(i.Messages.Data, &l)
@@ -209,7 +210,7 @@ func (i *IngesterWorker) Transform() error {
 				t["float64.values"] = append(t["float64.values"].([]float64), v.(float64))
 			}
 		}
-		sortedT, _, _, err := SortMap(t)
+		sortedT, _, _, err := sink.SortMap(t)
 		if err != nil {
 			return err
 		}

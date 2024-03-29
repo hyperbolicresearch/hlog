@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/hyperbolicresearch/hlog/config"
-	"github.com/hyperbolicresearch/hlog/internal/core"
-	"github.com/hyperbolicresearch/hlog/internal/kafkaservice"
+	"github.com/hyperbolicresearch/hlog/internal/logs"
+	kafkaservice "github.com/hyperbolicresearch/hlog/transport/kafka"
 )
 
 // LiveTail is a real-time, bridge between Kafka and a logging medium
@@ -33,7 +33,7 @@ func LiveTail(config *config.Livetail, sigchan chan os.Signal) {
 			if err != nil {
 				continue
 			}
-			var l core.Log
+			var l logs.Log
 			if err := json.Unmarshal(ev.Value, &l); err != nil {
 				fmt.Printf("error unmarshalling value %v: %v", ev.Value, err)
 			} else {

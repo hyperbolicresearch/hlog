@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/hyperbolicresearch/hlog/config"
-	"github.com/hyperbolicresearch/hlog/internal/core"
+	"github.com/hyperbolicresearch/hlog/internal/logs"
 )
 
 // GenerateRandomLogs generates logs every in k seconds
@@ -106,7 +106,7 @@ func Generate(kafkaProducer *kafka.Producer, cfg *config.Config) {
 		"company":   "Acme Inc.",
 	}
 
-	sendableLog := core.Log{
+	sendableLog := logs.Log{
 		Channel:   channel,
 		LogId:     id,
 		SenderId:  senderId,
