@@ -10,21 +10,28 @@ on:
     branches: [ "main" ]
 
 jobs:
+  # build:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - uses: actions/checkout@v3
 
-  build:
+  #   - name: Set up Go
+  #     uses: actions/setup-go@v4
+  #     with:
+  #       go-version: '1.22'
+
+  #   - name: Build binaries
+  #     run: go build -v ./...
+
+  test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
 
-    - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.22'
 
-    - name: Build binaries
-      run: go build -v ./...
-
-  test:
     - name: Build docker containers
       run: docker-compose up -d
     - name: Test
