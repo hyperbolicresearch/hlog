@@ -22,17 +22,22 @@ jobs:
 
   #   - name: Build binaries
   #     run: go build -v ./...
-
-  Test:
+  build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
 
     - name: Build docker containers
       run: docker-compose up -d
+    
+  test:
+    runs-on: ubuntu-latest
+    steps:
 
-    - name: Test
+    - name: Setup go
       uses: actions/setup-go@v4
       with:
         go-version: '1.22'
+        
+    - name: Run test
       run: go test -race ./...
