@@ -13,9 +13,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - name: Build docker containers
-      run: docker-compose up -d
     - uses: actions/checkout@v4
+    - name: Build docker containers
+      run: docker compose up -d
     - name: Setup Go
       uses: actions/setup-go@v4
       with:
