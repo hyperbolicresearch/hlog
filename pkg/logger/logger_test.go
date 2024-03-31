@@ -38,7 +38,8 @@ func TestLogger(t *testing.T) {
 		{name: "Logging bytes", expected: "foo\n", input: []byte("foo")},
 		{
 			name:     "Logging core.Log",
-			expected: "[channel | sender_id] 2021-04-13 12:00:00 DEBUG " + "\033[37mthis is a test message " + `{"foo":"bar"}` + "\033[0m\n",
+			// expected: "[channel | sender_id] 2021-04-13 12:00:00 DEBUG " + "\033[37mthis is a test message " + `{"foo":"bar"}` + "\033[0m\n",
+			expected: `{"channel":"channel","log_id":"0000-0000-0000-0000","sender_id":"sender_id","timestamp":1618304400,"level":"debug","message":"this is a test message","data":{"foo":"bar"}}`,
 			input:    log,
 		},
 	}

@@ -44,6 +44,7 @@ func (b *ClickHouseBatcherWorker) Sink(data []map[string]interface{}) (count int
 			} else {
 				log.Println("Added to batch...")
 			}
+			count += 1
 		}
 		// Committing changes
 		if err := batch.Send(); err != nil {
@@ -53,7 +54,6 @@ func (b *ClickHouseBatcherWorker) Sink(data []map[string]interface{}) (count int
 		b.Lock()
 		b.IterCount += 1
 		b.Unlock()
-		count += 1
 		log.Printf("Batch %v inserted successfully into %s", count, channel)
 	}
 	return count, nil
