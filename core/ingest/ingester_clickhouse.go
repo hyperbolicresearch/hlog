@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -95,13 +94,15 @@ func NewClickHouseIngester(cfg *config.Config) *IngesterWorker {
 
 // Start spins up the consuming process generally speaking. It runs as
 // long as i.IsRunning is true and tracks new incomming logs
-func (i *IngesterWorker) Start(stop chan os.Signal) {
+func (i *IngesterWorker) Start(stop chan struct{}) {
 	i.RLock()
-	if i.IsRunning {
+	isRunning := i.IsRunning
+	i.RUnlock()
+
+	if isRunning {
 		// TODO: Should I really panic here?
 		panic("Ingester worker already running...")
 	}
-	i.RUnlock()
 
 	i.Lock()
 	i.IsRunning = true
@@ -109,10 +110,10 @@ func (i *IngesterWorker) Start(stop chan os.Signal) {
 
 	consumeTicker := time.NewTicker(i.ConsumeInterval)
 
-	for i.IsRunning {
+	for isRunning {
 		select {
 		case <-stop:
-			i.Stop()
+			isRunning = false
 		case <-consumeTicker.C:
 			go i.Consume()
 		}
@@ -122,10 +123,11 @@ func (i *IngesterWorker) Start(stop chan os.Signal) {
 // Stop will stop all the ongoing processes gracefully, including
 // gracefully shutting down the consumming process from Kafka and
 // the sinking process to ClickHouse.
-func (i *IngesterWorker) Stop() error {
+func (i *IngesterWorker) Stop(stop chan struct{}) error {
 	i.Lock()
 	defer i.Unlock()
 	i.IsRunning = false
+	stop <- struct{}{}
 	return nil
 }
 
@@ -152,7 +154,6 @@ func (i *IngesterWorker) Consume() {
 		i.Messages.Unlock()
 	}
 
-	fmt.Println("At least we got here")
 	// The following pipeline will perfom the preparation and the
 	// sink of the buffered data to ClickHouse.
 	_ = i.Transform()
@@ -174,7 +175,6 @@ func (i *IngesterWorker) Consume() {
 // Transform will flatten the message to the appropriate format
 // that will be stored to ClickHouse, add metadata.
 func (i *IngesterWorker) Transform() error {
-	fmt.Println("Transforming")
 	for _, entry := range i.Messages.Data {
 		// metadata fields
 		t := make(map[string]interface{})
@@ -224,7 +224,6 @@ func (i *IngesterWorker) Transform() error {
 // ExtractSchemas takes a bunch of data and extracts the SQL compatible
 // schema out of them.
 func (i *IngesterWorker) ExtractSchemas() error {
-	fmt.Println("Extracting schema")
 	i.Messages.RLock()
 	data := i.Messages.TransformedData
 	i.Messages.RUnlock()

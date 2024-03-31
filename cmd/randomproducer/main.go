@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -21,6 +21,6 @@ func main() {
 		cfg = &config.DefaultConfig
 	}
 
-	fmt.Println("Producer simulator started...")
+	log.Printf("Producer simulator started...\n")
 	utils.GenerateRandomLogs(cfg, sigchan)
 }

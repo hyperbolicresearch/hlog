@@ -21,7 +21,6 @@ type ClickHouseBatcherWorker struct {
 // and will proceed to the dumping of those data in an efficient
 // manner, givent the shape of the data.
 func (b *ClickHouseBatcherWorker) Sink(data []map[string]interface{}) (count int, err error) {
-	fmt.Println("Sinking")
 	dataByChannel := GetDataByChannel(data)
 	count = 0
 	for channel, item := range dataByChannel {
