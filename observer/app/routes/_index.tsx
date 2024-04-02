@@ -127,10 +127,10 @@ export default function Index() {
       const _data = JSON.parse(event.data);
       setGenObs({
         ...genObs,
-        channels_count: [...genObs.channels_count, _data.channels_count],
-        senders_count: [...genObs.senders_count, _data.senders_count],
-        levels_count: [...genObs.levels_count, _data.levels_count],
-        total_ingested_logs: [...genObs?.total_ingested_logs, _data.total_ingested_logs],
+        channels_count: [...genObs.channels_count, _data.channels_count].slice(-100),
+        senders_count: [...genObs.senders_count, _data.senders_count].slice(-100),
+        levels_count: [...genObs.levels_count, _data.levels_count].slice(-100),
+        total_ingested_logs: [...genObs?.total_ingested_logs, _data.total_ingested_logs].slice(-100),
       })
     };
 

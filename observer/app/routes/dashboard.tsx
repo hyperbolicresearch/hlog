@@ -61,10 +61,10 @@ export default function Dashboard() {
       const _data = JSON.parse(event.data);
       setGenObs({
         ...genObs,
-        channels_count: [...genObs.channels_count, _data.channels_count],
-        senders_count: [...genObs.senders_count, _data.senders_count],
-        levels_count: [...genObs.levels_count, _data.levels_count],
-        total_ingested_logs: [...genObs?.total_ingested_logs, _data.total_ingested_logs],
+        channels_count: [...genObs.channels_count, _data.channels_count].slice(-100),
+        senders_count: [...genObs.senders_count, _data.senders_count].slice(-100),
+        levels_count: [...genObs.levels_count, _data.levels_count].slice(-100),
+        total_ingested_logs: [...genObs?.total_ingested_logs, _data.total_ingested_logs].slice(-100),
         logs_per_level: _data.logs_per_level,
         logs_per_sender: _data.logs_per_sender,
         logs_per_channel: _data.logs_per_channel,
@@ -110,7 +110,7 @@ export default function Dashboard() {
   // Those are options for the chartjs chart that is displayed along with
   // the number of total ingested logs.
   const total_ingest_logs_labels = Array.from(Array(genObs.total_ingested_logs.length).keys())
-  const log_ingested_logs_data = {
+  const total_ingested_logs_data = {
     total_ingest_logs_labels,
     datasets: [
       {
@@ -151,7 +151,6 @@ export default function Dashboard() {
     ],
   }
 
-
   return (
     <div className="px-8 flex flex-col gap-2 overflow-auto w-full max-w-screen-xl">
       <section className="flex gap-2 overflow-auto h-[7rem] min-h-[7rem]">
@@ -186,7 +185,7 @@ export default function Dashboard() {
             <div className="w-[60%]">
               <Line 
                 options={line_options} 
-                data={log_ingested_logs_data}
+                data={total_ingested_logs_data}
                 />
             </div>
           </div>
