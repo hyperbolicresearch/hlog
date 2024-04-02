@@ -50,7 +50,7 @@ func GenerateRandomLogs(cfg *config.Config, stop chan os.Signal) {
 			run = false
 		case <-ticker.C:
 			// rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-			amount := 1  // rnd.Intn(200)
+			amount := 10  // rnd.Intn(200)
 			for range amount {
 				go Generate(producer, cfg)
 			}

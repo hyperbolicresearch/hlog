@@ -82,7 +82,9 @@ export const loader = async () => {
 }
 
 export default function Index() {
-  const data = useLoaderData<typeof loader>();
+  // GenObs (general observables) are the data needed to display the
+  // high-level statistics of the logging system, including the number
+  // of channels, senders, levels used so far and total ingested logs.
   const initial_gen_obs: GenObs = {
     logs_per_channel: {},
     logs_per_sender: {},
@@ -95,19 +97,27 @@ export default function Index() {
   };
   const [genObs, setGenObs] = useState<GenObs>(initial_gen_obs);
 
-  const inital_loaded_logs = useLoaderData<typeof loader>();
-
-  const inital_logs : LogT[] = inital_loaded_logs as unknown as LogT[];
+  // logs are the preloaded logs that we fetched before
+  // rendering the page for displaying purposes, before the live tailing
+  // begins.
+  const initial_loaded_logs = useLoaderData<typeof loader>();
+  const inital_logs : LogT[] = initial_loaded_logs as unknown as LogT[];
   const [logs, setLogs] = useState<LogT[]>(inital_logs)
-  const level_map: LogLevelCount = {
-    "debug": 0,
-    "info": 0,
-    "warn": 0,
-    "error": 0,
-    "fatal": 0,
-  }
+
+  // The following two states (displayModal and modalItem) are used to
+  // set the display of the modal that renders the clicked log.
   const [displayModal, setDisplayModal] = useState<boolean>(false)
   const [modalItem, setModalItem] = useState<LogT>()
+  const onClickDisplayModal = (
+    item: LogT | undefined
+  ) => {
+    if (displayModal === false) {
+      if (item) {
+        setModalItem(item)
+      }
+    }
+    setDisplayModal(!displayModal);
+  }
 
   useEffect(() => {
     let socket = new WebSocket("ws://localhost:1542/genericobservables");
@@ -153,6 +163,8 @@ export default function Index() {
     };
   }, [])
 
+  // Those are options for the chartjs chart that is displayed along with
+  // the number of total ingested logs.
   const line_options = {
     responsive: true,
     aspectRatio: 6,
@@ -171,7 +183,6 @@ export default function Index() {
       },
   }
   }
-
   const labels = Array.from(Array(genObs.total_ingested_logs.length).keys())
   const log_ingested_logs_data = {
     labels,
@@ -184,53 +195,6 @@ export default function Index() {
         borderWidth: 1,
       }
     ]
-  }
-
-  for (let i = 0; i < logs.length; i++) {
-    const l: string = logs[i].level
-    level_map[l] += 1
-  }
-
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      title: {
-        display: false,
-      },
-    },
-  };
-
-  const onClickDisplayModal = (
-    item: LogT | undefined
-  ) => {
-    if (displayModal === false) {
-      if (item) {
-        setModalItem(item)
-      }
-    }
-    setDisplayModal(!displayModal);
-  }
-
-  const timeAgo = (interval: number) : string => {
-    let str = "("
-    const days = Math.floor(interval / 84600)
-    let remaining = Math.floor(interval % 84600)
-    const hours = Math.floor(remaining / 3600)
-    remaining = Math.floor(remaining % 3600)
-    const minutes = Math.floor(remaining / 60)
-    remaining = Math.floor(remaining % 60)
-    const seconds = Math.floor(remaining)
-
-    if (days != 0) { str += `${days} days `}
-    if (hours != 0) { str += `${hours} hours `}
-    if (minutes != 0) { str += `${minutes} minutes `}
-    if (seconds != 0) { str += `${seconds} seconds`} else {
-      str += "just now"
-    }
-    return str + ")"
   }
 
   return (
