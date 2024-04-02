@@ -110,10 +110,10 @@ export default function App() {
       const _data = JSON.parse(event.data);
       setGenObs({
         ...genObs,
-        channels_count: [...genObs.channels_count, _data.channels_count].slice(-100),
-        senders_count: [...genObs.senders_count, _data.senders_count].slice(-100),
-        levels_count: [...genObs.levels_count, _data.levels_count].slice(-100),
-        total_ingested_logs: [...genObs?.total_ingested_logs, _data.total_ingested_logs].slice(-100),
+        channels_count: [...genObs.channels_count, _data.channels_count].slice(-50),
+        senders_count: [...genObs.senders_count, _data.senders_count].slice(-50),
+        levels_count: [...genObs.levels_count, _data.levels_count].slice(-50),
+        total_ingested_logs: [...genObs?.total_ingested_logs, _data.total_ingested_logs].slice(-50),
         logs_per_level: _data.logs_per_level,
         logs_per_sender: _data.logs_per_sender,
         logs_per_channel: _data.logs_per_channel,

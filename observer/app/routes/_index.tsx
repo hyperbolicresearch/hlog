@@ -45,8 +45,6 @@ ChartJS.register(
   Legend,
 );
 
-
-
 export default function Index() {
   // @ts-ignore
   const [ logs, genObs ] = useOutletContext();
