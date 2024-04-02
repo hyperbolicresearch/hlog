@@ -3,7 +3,6 @@ import type { MetaFunction } from "@remix-run/node";
 import { createPortal } from "react-dom";
 import { Line } from "react-chartjs-2";
 import { json } from "@remix-run/node";
-// import 'chart.js/auto';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -131,7 +130,6 @@ export default function Index() {
         channels_count: [...genObs.channels_count, _data.channels_count],
         senders_count: [...genObs.senders_count, _data.senders_count],
         levels_count: [...genObs.levels_count, _data.levels_count],
-
         total_ingested_logs: [...genObs?.total_ingested_logs, _data.total_ingested_logs],
       })
     };
@@ -181,7 +179,7 @@ export default function Index() {
       y: { 
         display: false,
       },
-  }
+    }
   }
   const labels = Array.from(Array(genObs.total_ingested_logs.length).keys())
   const log_ingested_logs_data = {
@@ -221,7 +219,6 @@ export default function Index() {
             {genObs.levels_count[genObs.levels_count.length - 1] || 0}
           </p>
         </article>
-        {/* logs_per_channel*/}
         {/* total_ingested_logs */}
         <article className="text-white bg-black p-3 rounded-lg h-full flex-1 flex flex-col justify-between">
           <p className="text-[#86898D] text-sm">Total ingested logs</p>
@@ -233,10 +230,11 @@ export default function Index() {
               <Line 
                 options={line_options} 
                 data={log_ingested_logs_data}
-              />
+                />
             </div>
           </div>
         </article>
+        {/* logs_per_channel*/}
         {/* logs_per_sender */}
         {/* logs_per_level */}
       </section>
@@ -263,7 +261,6 @@ export default function Index() {
           >
             <DocumentIcon width={20} height={20} color="#86898D" />
             <p className="text-sm w-[20%] text-[#86898D]">{new Date(log.timestamp * 1000).toISOString()}</p>
-            {/* <p className="text-sm w-[20%] text-[#86898D]">{log.timestamp}</p> */}
             <p className="text-sm w-[10%] line-clamp-1 font-medium">{log.channel}</p>
             <p className="text-sm w-[5%] text-[#1C65F4] font-medium">{log.level}</p>
             <p className="text-sm w-[30%] text-[#1E1E1E] line-clamp-1">{log.message}</p>
