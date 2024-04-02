@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
+import { useOutletContext } from "@remix-run/react";
 import type { MetaFunction } from "@remix-run/node";
 import { createPortal } from "react-dom";
 import { Line } from "react-chartjs-2";
-import { json } from "@remix-run/node";
 import {
   Chart as ChartJS,
+  ChartData,
   CategoryScale,
   LinearScale,
   PointElement,
@@ -13,11 +14,12 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { useLoaderData } from "@remix-run/react";
 import moment from 'moment';
 import {
   DocumentIcon,
 } from "@heroicons/react/24/outline"
+import { LogT } from "~/utils/types";
+import { useLoaderData } from "@remix-run/react";
 
 
 export const meta: MetaFunction = () => {
@@ -40,68 +42,15 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
 );
 
-type GenObs = {
-  channels_count: number[];
-  logs_per_channel: { [key: string]: number[] };
-  logs_per_sender: { [key: string]: number[] };
-  logs_per_level: { [key: string ]: number[] };
-  senders_count: number[];
-  levels_count: number[];
-  total_ingested_logs: number[];
-  throughput_per_time: number[];
-}
 
-type LogT = {
-  channel: string
-  log_id: string
-  sender_id: string
-  timestamp: number
-  level: string
-  message:string
-  data: object
-}
-
-type LogLevelCount = {
-  debug: number;
-  info: number;
-  warn: number;
-  error: number;
-  fatal: number;
-  [key: string]: number;
-};
-
-export const loader = async () => {
-  const url = "http://localhost:1542/liveinit"
-  let response = await fetch(url)
-  response = await response.json()
-  return json(response)
-}
 
 export default function Index() {
-  // GenObs (general observables) are the data needed to display the
-  // high-level statistics of the logging system, including the number
-  // of channels, senders, levels used so far and total ingested logs.
-  const initial_gen_obs: GenObs = {
-    logs_per_channel: {},
-    logs_per_sender: {},
-    logs_per_level: {},
-    channels_count: [],
-    senders_count: [],
-    levels_count: [],
-    total_ingested_logs: [],
-    throughput_per_time: [],
-  };
-  const [genObs, setGenObs] = useState<GenObs>(initial_gen_obs);
-
-  // logs are the preloaded logs that we fetched before
-  // rendering the page for displaying purposes, before the live tailing
-  // begins.
-  const initial_loaded_logs = useLoaderData<typeof loader>();
-  const inital_logs : LogT[] = initial_loaded_logs as unknown as LogT[];
-  const [logs, setLogs] = useState<LogT[]>(inital_logs)
+  // @ts-ignore
+  const [ logs, genObs ] = useOutletContext();
+  console.log(genObs)
 
   // The following two states (displayModal and modalItem) are used to
   // set the display of the modal that renders the clicked log.
@@ -118,49 +67,6 @@ export default function Index() {
     setDisplayModal(!displayModal);
   }
 
-  useEffect(() => {
-    let socket = new WebSocket("ws://localhost:1542/genericobservables");
-    socket.onopen = () => {
-      socket.send("connection")
-    };
-    socket.onmessage = (event) => {
-      const _data = JSON.parse(event.data);
-      setGenObs({
-        ...genObs,
-        channels_count: [...genObs.channels_count, _data.channels_count].slice(-100),
-        senders_count: [...genObs.senders_count, _data.senders_count].slice(-100),
-        levels_count: [...genObs.levels_count, _data.levels_count].slice(-100),
-        total_ingested_logs: [...genObs?.total_ingested_logs, _data.total_ingested_logs].slice(-100),
-      })
-    };
-
-    return () => {
-      socket.close();
-    }
-  })
-
-  // TODO here, upon opening, we connect to the WS server
-  // to receive the newest logs. But there are several things we need
-  // to work with:
-  // Sometimes, we are not connected, even if we are on this page.
-  // take care of reconnecting everytime this is open.
-  useEffect(() => {
-    let socket = new WebSocket("ws://localhost:1542/live");
-    socket.onopen = () => {
-      socket.send("Connection");
-    };
-    socket.onmessage = (event) => {
-      const _data = JSON.parse(event.data);
-      if (Object.keys(_data).length > 0 ) {
-        setLogs((logs) => [_data, ...logs].slice(0, 100));
-      }
-    };
-
-    return () => {
-      socket.close();
-    };
-  }, [])
-
   // Those are options for the chartjs chart that is displayed along with
   // the number of total ingested logs.
   const line_options = {
@@ -172,7 +78,7 @@ export default function Index() {
       title: { display: false, }
     },
     elements: {
-      point:{ radius: 0, }
+      point:{ radius: 1, }
     },
     scales: {
       x: { display: false },
@@ -182,7 +88,7 @@ export default function Index() {
     }
   }
   const labels = Array.from(Array(genObs.total_ingested_logs.length).keys())
-  const log_ingested_logs_data = {
+  const log_ingested_logs_data: ChartData<"line", number[], unknown> = {
     labels,
     datasets: [
       {
@@ -190,7 +96,7 @@ export default function Index() {
         data: genObs.total_ingested_logs,
         borderColor: '#1C65F4',
         backgroundColor: '#1C65F4',
-        borderWidth: 1,
+        borderWidth: 2,
       }
     ]
   }
@@ -244,15 +150,16 @@ export default function Index() {
         document.body
       )}
 
-      <article className="bg-black px-4 py-3 rounded-lg flex gap-2 items-center sticky top-0">
-        <DocumentIcon width={20} height={20} color="white" />
-        <p className="font-semibold text-white text-sm w-[20%]">Date and time</p>
-        <p className="font-semibold text-white text-sm w-[10%] line-clamp-1">Channel</p>
-        <p className="font-semibold text-white text-sm w-[5%]  line-clamp-1">Level</p>
-        <p className="font-semibold text-white text-sm w-[30%] line-clamp-1">Message</p>
-        <p className="font-semibold text-white text-sm w-[30%] line-clamp-1">Data</p>
+      <article className="bg-[#f2f2f2] px-4 py-3 rounded-lg flex gap-2 items-center sticky top-0">
+        <DocumentIcon width={20} height={20} color="black" />
+        <p className="font-semibold text-black text-sm w-[20%]">Date and time</p>
+        <p className="font-semibold text-black text-sm w-[10%] line-clamp-1">Channel</p>
+        <p className="font-semibold text-black text-sm w-[5%]  line-clamp-1">Level</p>
+        <p className="font-semibold text-black text-sm w-[30%] line-clamp-1">Message</p>
+        <p className="font-semibold text-black text-sm w-[30%] line-clamp-1">Data</p>
       </article>
       {
+        // @ts-ignore
         logs.map(log => (
           <article 
             key={log.log_id} 

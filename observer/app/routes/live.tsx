@@ -155,40 +155,14 @@ export default function Live() {
         <Modal onClick={onClickDisplayModal} log={modalItem}/>, 
         document.body
       )}
-      <article className="bg-black p-4 rounded-[20px] flex justify-between">
-        <section className="w-[25%] flex flex-col justify-between">
-          <p className="text-[#86898D] text-sm">Total loaded logs</p>
-          <p className="text-white text-5xl">{logs.length}</p>
-        </section>
-        <section className=" w-[25%] flex flex-col justify-between">
-          <p className="text-[#86898D] text-sm">Channels count</p>
-          <p className="text-white text-5xl">{new Set(logs.map(log => log.channel)).size}</p>
-        </section>
-        <section className="w-[25%] flex flex-col justify-between">
-          <p className="text-[#86898D] text-sm">Timeframe</p>
-          <div>
-            <p className="text-[#86898D] text-sm ">
-              {timeAgo(logs[0]?.timestamp - logs[logs.length - 1]?.timestamp)}
-            </p>
-            <p className="text-white text-2xl">{
-              new Date(logs[logs.length - 1]?.timestamp * 1000).toLocaleTimeString() + 
-              " - " + 
-              new Date(logs[0]?.timestamp * 1000).toLocaleTimeString()}
-            </p>
-          </div>
-        </section>
-        <section className="w-[22%] flex flex-col justify-between">
-          <p className="text-[#86898D] text-sm">Logs per levels</p>
-          <Bar options={options} data={data} />
-        </section>
-      </article>
-      <article className="bg-black px-4 py-3 rounded-lg flex gap-2 items-center sticky top-0">
-        <DocumentIcon width={20} height={20} color="white" />
-        <p className="font-semibold text-white text-sm w-[20%]">Date and time</p>
-        <p className="font-semibold text-white text-sm w-[10%] line-clamp-1">Channel</p>
-        <p className="font-semibold text-white text-sm w-[5%]  line-clamp-1">Level</p>
-        <p className="font-semibold text-white text-sm w-[30%] line-clamp-1">Message</p>
-        <p className="font-semibold text-white text-sm w-[30%] line-clamp-1">Data</p>
+      
+      <article className="bg-[#f2f2f2] px-4 py-3 rounded-lg flex gap-2 items-center sticky top-0">
+        <DocumentIcon width={20} height={20} color="black" />
+        <p className="font-semibold text-black text-sm w-[20%]">Date and time</p>
+        <p className="font-semibold text-black text-sm w-[10%] line-clamp-1">Channel</p>
+        <p className="font-semibold text-black text-sm w-[5%]  line-clamp-1">Level</p>
+        <p className="font-semibold text-black text-sm w-[30%] line-clamp-1">Message</p>
+        <p className="font-semibold text-black text-sm w-[30%] line-clamp-1">Data</p>
       </article>
       {
         logs.map(log => (

@@ -1,5 +1,5 @@
 import type { MetaFunction } from "@remix-run/node";
-import { useEffect, useState } from "react";
+import { useOutletContext } from "@remix-run/react";
 import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -17,64 +17,18 @@ import {
 ChartJS.register(
   CategoryScale,
   LinearScale,
-  BarElement,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend
 );
 
-type GenObs = {
-  channels_count: number[];
-  logs_per_channel: { [key: string]: number };
-  logs_per_sender: { [key: string]: number };
-  logs_per_level: { [key: string ]: number };
-  senders_count: number[];
-  levels_count: number[];
-  total_ingested_logs: number[];
-  throughput_per_time: number[];
-}
-
 export default function Dashboard() {
-  // GenObs (general observables) are the data needed to display the
-  // high-level statistics of the logging system, including the number
-  // of channels, senders, levels used so far and total ingested logs.
-  const initial_gen_obs: GenObs = {
-    logs_per_channel: {},
-    logs_per_sender: {},
-    logs_per_level: {},
-    channels_count: [],
-    senders_count: [],
-    levels_count: [],
-    total_ingested_logs: [],
-    throughput_per_time: [],
-  };
-  const [genObs, setGenObs] = useState<GenObs>(initial_gen_obs);
-
-  useEffect(() => {
-    let socket = new WebSocket("ws://localhost:1542/genericobservables");
-    socket.onopen = () => {
-      socket.send("connection")
-    };
-    socket.onmessage = (event) => {
-      const _data = JSON.parse(event.data);
-      setGenObs({
-        ...genObs,
-        channels_count: [...genObs.channels_count, _data.channels_count].slice(-100),
-        senders_count: [...genObs.senders_count, _data.senders_count].slice(-100),
-        levels_count: [...genObs.levels_count, _data.levels_count].slice(-100),
-        total_ingested_logs: [...genObs?.total_ingested_logs, _data.total_ingested_logs].slice(-100),
-        logs_per_level: _data.logs_per_level,
-        logs_per_sender: _data.logs_per_sender,
-        logs_per_channel: _data.logs_per_channel,
-      })
-    };
-
-    return () => {
-      socket.close();
-    }
-  })
+  // @ts-ignore
+  const [ logs, genObs ] = useOutletContext();
+  console.log(genObs);
 
   const line_options = {
     responsive: true,
@@ -85,7 +39,7 @@ export default function Dashboard() {
       title: { display: false, }
     },
     elements: {
-      point:{ radius: 0, }
+      point:{ radius: 1, }
     },
     scales: {
       x: { display: false },
@@ -107,18 +61,19 @@ export default function Dashboard() {
     },
   }
 
+
   // Those are options for the chartjs chart that is displayed along with
   // the number of total ingested logs.
   const total_ingest_logs_labels = Array.from(Array(genObs.total_ingested_logs.length).keys())
-  const total_ingested_logs_data = {
-    total_ingest_logs_labels,
+  const total_ingested_logs_data: ChartData<"line", number[], unknown> = {
+    labels: total_ingest_logs_labels,
     datasets: [
       {
-        label: "Log ingested logs",
+        label: "Log ingested logs.",
         data: genObs.total_ingested_logs,
         borderColor: '#1C65F4',
         backgroundColor: '#1C65F4',
-        borderWidth: 1,
+        borderWidth: 2,
       }
     ]
   }
@@ -213,7 +168,6 @@ export default function Dashboard() {
           </div>
         </article>
         {/* logs_per_level */}
-
       </section>
     </div>
   )
